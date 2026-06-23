@@ -1,0 +1,73 @@
+{
+  "name": "Account settings card",
+  "description": "Hand-authored A2UI v0.9.1 surface that instantiates components compiled from the shadcn/ui dspack contract: a Card containing a Column with a Text title, a TextField, and a primary Button. The theme.primaryColor is the shadcn `color.primary` token (hsl(222.2,47.4%,11.2%)) converted to #0f172a, so the primary Button paints in the design-system color. The createSurface.catalogId points at the A2UI basic catalog the stock renderer implements; the component objects below also validate against our generated catalog's #/$defs/anyComponent (validation gate 3).",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "settings-card",
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+        "theme": {
+          "primaryColor": "#0f172a",
+          "agentDisplayName": "shadcn/ui via dspack"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "settings-card",
+        "components": [
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "form_col"
+          },
+          {
+            "id": "form_col",
+            "component": "Column",
+            "children": ["title", "subtitle", "email_field", "save_btn"],
+            "justify": "start",
+            "align": "stretch"
+          },
+          {
+            "id": "title",
+            "component": "Text",
+            "text": "Account settings",
+            "variant": "h3"
+          },
+          {
+            "id": "subtitle",
+            "component": "Text",
+            "text": "Update the email associated with your account.",
+            "variant": "caption"
+          },
+          {
+            "id": "email_field",
+            "component": "TextField",
+            "label": "Email address",
+            "value": { "path": "/email" },
+            "variant": "shortText"
+          },
+          {
+            "id": "save_btn",
+            "component": "Button",
+            "child": "save_label",
+            "variant": "primary",
+            "action": {
+              "event": {
+                "name": "save_settings",
+                "context": {}
+              }
+            }
+          },
+          {
+            "id": "save_label",
+            "component": "Text",
+            "text": "Save changes"
+          }
+        ]
+      }
+    }
+  ]
+}

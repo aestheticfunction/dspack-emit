@@ -1,0 +1,26 @@
+{
+  "name": "dspack-to-a2ui-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Renders the hand-authored A2UI v0.9.1 surface through the published React A2UI renderer, proving Basic-Catalog compatibility of the dspack-compiled surface.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@a2ui/react": "0.10.1",
+    "@a2ui/web_core": "0.10.3",
+    "@a2ui/markdown-it": "0.0.4",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

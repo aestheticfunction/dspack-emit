@@ -1,0 +1,612 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rdombrowski.dev/catalogs/shadcn-ui/v0_9_1/catalog.json",
+  "title": "shadcn/ui — A2UI catalog (compiled from dspack)",
+  "description": "A2UI catalog compiled from the shadcn/ui dspack v0.2 contract. Component shapes, variant enums, and the primary design token are projected onto the A2UI basic component vocabulary. See MAPPING.md for per-field fidelity.",
+  "catalogId": "https://rdombrowski.dev/catalogs/shadcn-ui/v0_9_1/catalog.json",
+  "components": {
+    "Button": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/Checkable"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Button"
+            },
+            "child": {
+              "$ref": "#/$defs/ComponentId",
+              "description": "The ID of the child component to render inside the button (e.g. a Text). Referenced by ID; not defined inline."
+            },
+            "action": {
+              "$ref": "#/$defs/Action",
+              "description": "The interaction dispatched when the button is activated."
+            },
+            "variant": {
+              "type": "string",
+              "description": "Button style hint, projected from shadcn variants onto the A2UI basic vocabulary.",
+              "enum": [
+                "default",
+                "primary",
+                "borderless"
+              ],
+              "default": "primary",
+              "x-dspack-source": {
+                "sourceProp": "variant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "default",
+                  "destructive",
+                  "outline",
+                  "secondary",
+                  "ghost",
+                  "link"
+                ],
+                "valueMap": {
+                  "default": "primary",
+                  "destructive": "default",
+                  "outline": "default",
+                  "secondary": "default",
+                  "ghost": "borderless",
+                  "link": "borderless"
+                }
+              }
+            }
+          },
+          "required": [
+            "component",
+            "child",
+            "action"
+          ],
+          "description": "An interactive element that triggers an action when activated. Built on a native button element with support for Radix UI Slot composition via asChild.",
+          "x-dspack": {
+            "sourceId": "button",
+            "status": "stable",
+            "tags": [
+              "interactive",
+              "form",
+              "action"
+            ]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Card": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Card"
+            },
+            "child": {
+              "$ref": "#/$defs/ComponentId",
+              "description": "The ID of the single child component. Wrap multiple elements in a Column and pass its ID."
+            }
+          },
+          "required": [
+            "component",
+            "child"
+          ],
+          "description": "A container for grouping related content and actions. Provides visual separation through a bordered surface.",
+          "x-dspack": {
+            "sourceId": "card",
+            "status": "stable",
+            "tags": [
+              "layout",
+              "container",
+              "surface"
+            ]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "TextField": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/Checkable"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "TextField"
+            },
+            "label": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The text label for the input field."
+            },
+            "value": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The bound value of the text field."
+            },
+            "variant": {
+              "type": "string",
+              "description": "Input kind, projected from the HTML input type onto A2UI TextField variants.",
+              "enum": [
+                "shortText",
+                "longText",
+                "number",
+                "obscured"
+              ],
+              "default": "shortText",
+              "x-dspack-source": {
+                "sourceProp": "type",
+                "sourceType": "string",
+                "valueMap": {
+                  "text": "shortText",
+                  "email": "shortText",
+                  "search": "shortText",
+                  "password": "obscured",
+                  "number": "number"
+                }
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label"
+          ],
+          "description": "A single-line text input field built on the native <input> element. Supports all standard HTML input types.",
+          "x-dspack": {
+            "sourceId": "input",
+            "status": "stable",
+            "tags": [
+              "form",
+              "input",
+              "text"
+            ]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Text": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Text"
+            },
+            "text": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The text content to display."
+            },
+            "variant": {
+              "type": "string",
+              "description": "A hint for the base text style.",
+              "enum": [
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "caption",
+                "body"
+              ],
+              "default": "body"
+            }
+          },
+          "required": [
+            "component",
+            "text"
+          ],
+          "description": "Displays text content. Synthesized A2UI content primitive (not in dspack)."
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Column": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Column"
+            },
+            "children": {
+              "$ref": "#/$defs/ChildList",
+              "description": "Child component IDs (or a template)."
+            },
+            "justify": {
+              "type": "string",
+              "description": "Arrangement of children along the vertical main axis.",
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly",
+                "stretch"
+              ],
+              "default": "start"
+            },
+            "align": {
+              "type": "string",
+              "description": "Alignment of children along the horizontal cross axis.",
+              "enum": [
+                "center",
+                "end",
+                "start",
+                "stretch"
+              ],
+              "default": "stretch"
+            }
+          },
+          "required": [
+            "component",
+            "children"
+          ],
+          "description": "Arranges children vertically. Synthesized A2UI structural primitive (dspack has no layout component; its `layout` block is descriptive only)."
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  },
+  "$defs": {
+    "ComponentId": {
+      "type": "string",
+      "description": "The unique identifier for a component, used for both definitions and references within the same surface."
+    },
+    "AccessibilityAttributes": {
+      "type": "object",
+      "description": "Attributes to enhance accessibility when using assistive technologies like screen readers.",
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/DynamicString"
+        },
+        "description": {
+          "$ref": "#/$defs/DynamicString"
+        }
+      }
+    },
+    "ComponentCommon": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/ComponentId"
+        },
+        "accessibility": {
+          "$ref": "#/$defs/AccessibilityAttributes"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "DataBinding": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "A JSON Pointer path to a value in the data model."
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "FunctionCall": {
+      "type": "object",
+      "description": "Invokes a named function on the client.",
+      "properties": {
+        "call": {
+          "type": "string",
+          "description": "The name of the function to call."
+        },
+        "args": {
+          "type": "object",
+          "description": "Arguments passed to the function.",
+          "additionalProperties": true
+        },
+        "returnType": {
+          "type": "string",
+          "description": "The expected return type of the function call.",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "array",
+            "object",
+            "any",
+            "void"
+          ],
+          "default": "boolean"
+        }
+      },
+      "required": [
+        "call"
+      ]
+    },
+    "DynamicValue": {
+      "description": "A value that can be a literal, a path, or a function call returning any type.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "array"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "$ref": "#/$defs/FunctionCall"
+        }
+      ]
+    },
+    "DynamicString": {
+      "description": "Represents a string",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FunctionCall"
+            },
+            {
+              "properties": {
+                "returnType": {
+                  "const": "string"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "DynamicBoolean": {
+      "description": "Represents a boolean",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/DataBinding"
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/FunctionCall"
+            },
+            {
+              "properties": {
+                "returnType": {
+                  "const": "boolean"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "ChildList": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "A static list of child component IDs."
+        },
+        {
+          "type": "object",
+          "description": "A template for generating a dynamic list of children from a data model list.",
+          "properties": {
+            "componentId": {
+              "$ref": "#/$defs/ComponentId"
+            },
+            "path": {
+              "type": "string",
+              "description": "The path to the list of component property objects in the data model."
+            }
+          },
+          "required": [
+            "componentId",
+            "path"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CheckRule": {
+      "type": "object",
+      "description": "A single validation rule applied to an input component.",
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/DynamicBoolean"
+        },
+        "message": {
+          "type": "string",
+          "description": "The error message to display if the check fails."
+        }
+      },
+      "required": [
+        "condition",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "Checkable": {
+      "type": "object",
+      "description": "Properties for components that support client-side checks.",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "description": "A list of checks to perform.",
+          "items": {
+            "$ref": "#/$defs/CheckRule"
+          }
+        }
+      }
+    },
+    "Action": {
+      "description": "Defines an interaction handler that can either trigger a server-side event or execute a local client-side function.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Triggers a server-side event.",
+          "properties": {
+            "event": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "context": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/DynamicValue"
+                  }
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "event"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Executes a local client-side function.",
+          "properties": {
+            "functionCall": {
+              "$ref": "#/$defs/FunctionCall"
+            }
+          },
+          "required": [
+            "functionCall"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "anyComponent": {
+      "oneOf": [
+        {
+          "$ref": "#/components/Button"
+        },
+        {
+          "$ref": "#/components/Card"
+        },
+        {
+          "$ref": "#/components/TextField"
+        },
+        {
+          "$ref": "#/components/Text"
+        },
+        {
+          "$ref": "#/components/Column"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "component"
+      }
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "primaryColor": {
+          "type": "string",
+          "description": "The primary brand color used for highlights (e.g., primary buttons, active borders). Format: Hexadecimal code (e.g., '#00BFFF').",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "default": "#0f172a",
+          "x-dspack-source": "tokens.color.primary"
+        },
+        "iconUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL for an image that identifies the agent or tool associated with the surface."
+        },
+        "agentDisplayName": {
+          "type": "string",
+          "description": "Text displayed next to the surface to identify the agent or tool that created it."
+        }
+      },
+      "additionalProperties": true,
+      "x-dspack-tokens": {
+        "color-primitives": {
+          "white": "#ffffff",
+          "slate-950": "#020817",
+          "slate-900": "#0f172a",
+          "slate-50": "#f8fafc",
+          "slate-100": "#f1f5f9",
+          "slate-400": "#64748b",
+          "slate-200": "#e2e8f0",
+          "red-500": "#ef4444",
+          "blue-500": "#3b82f6"
+        },
+        "color": {
+          "background": "#ffffff",
+          "foreground": "#020817",
+          "primary": "#0f172a",
+          "primary-foreground": "#f8fafc",
+          "secondary": "#f1f5f9",
+          "secondary-foreground": "#0f172a",
+          "muted": "#f1f5f9",
+          "muted-foreground": "#64748b",
+          "accent": "#f1f5f9",
+          "destructive": "#ef4444",
+          "destructive-foreground": "#f8fafc",
+          "border": "#e2e8f0",
+          "ring": "#020817"
+        },
+        "spacing": {
+          "sp-1": "0.25rem",
+          "sp-2": "0.5rem",
+          "sp-4": "1rem",
+          "sp-6": "1.5rem",
+          "sp-8": "2rem"
+        },
+        "border-radius": {
+          "radius": "0.5rem",
+          "radius-sm": "calc(0.5rem - 4px)",
+          "radius-lg": "calc(0.5rem + 4px)"
+        }
+      }
+    }
+  }
+}
