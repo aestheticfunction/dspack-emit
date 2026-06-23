@@ -1,0 +1,395 @@
+{
+  "a2uiVersion": "0.9.1",
+  "generatedAt": "2026-06-23T20:53:13.977Z",
+  "validation": {
+    "pass": true,
+    "gates": [
+      {
+        "name": "schema-compile + no-external-ref",
+        "pass": true,
+        "detail": "Catalog compiles as a draft-2020-12 JSON Schema with only internal $refs."
+      },
+      {
+        "name": "catalog-shape",
+        "pass": true,
+        "detail": "Catalog satisfies the A2UI v0.9.1 catalog-shape meta-schema."
+      },
+      {
+        "name": "instance",
+        "pass": true,
+        "detail": "All 7 surface component instance(s) validate against #/$defs/anyComponent."
+      }
+    ]
+  },
+  "fidelity": {
+    "summary": {
+      "maps-cleanly": 6,
+      "synthesis-defaults": 12,
+      "lossy": 3,
+      "cannot-represent": 27
+    },
+    "entries": [
+      {
+        "source": "components.button.description",
+        "target": "components.Button.description",
+        "class": "maps-cleanly",
+        "note": "dspack component description carried verbatim into the catalog component."
+      },
+      {
+        "source": "components.button",
+        "target": "components.Button.properties.child",
+        "class": "synthesis-defaults",
+        "note": "A2UI Buttons render a child component by ID; dspack Button has no equivalent slot (children are arbitrary React nodes)."
+      },
+      {
+        "source": "components.button",
+        "target": "components.Button.properties.action",
+        "class": "synthesis-defaults",
+        "note": "A2UI requires a declarative action; dspack expresses this as an onClick handler prop, which is not representable in a declarative catalog."
+      },
+      {
+        "source": "components.button.props.variant",
+        "target": "components.Button.properties.variant",
+        "class": "lossy",
+        "note": "Enum projected 6->3 (many-to-one); distinct source variants collapse."
+      },
+      {
+        "source": "components.button.props.size",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI Button property corresponds to 'size'."
+      },
+      {
+        "source": "components.button.props.disabled",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI Button property corresponds to 'disabled'."
+      },
+      {
+        "source": "components.button.props.asChild",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI Button property corresponds to 'asChild'."
+      },
+      {
+        "source": "components.button.accessibility",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack accessibility is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.button.constraints",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack constraints is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.button.whenToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.button.whenNotToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenNotToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.button.{status,tags}",
+        "target": "components.Button.x-dspack",
+        "class": "maps-cleanly",
+        "note": "dspack status/tags carried as catalog component metadata (x-dspack annotation)."
+      },
+      {
+        "source": "components.card.description",
+        "target": "components.Card.description",
+        "class": "maps-cleanly",
+        "note": "dspack component description carried verbatim into the catalog component."
+      },
+      {
+        "source": "components.card",
+        "target": "components.Card.properties.child",
+        "class": "synthesis-defaults",
+        "note": "A2UI Card takes exactly one child by ID; dspack Card composes via sub-components (CardHeader/CardContent/CardFooter), which collapse to a single child slot."
+      },
+      {
+        "source": "components.card.props.className",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI Card property corresponds to 'className'."
+      },
+      {
+        "source": "components.card.composition",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack composition is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.card.constraints",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack constraints is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.card.whenToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.card.whenNotToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenNotToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.card.{status,tags}",
+        "target": "components.Card.x-dspack",
+        "class": "maps-cleanly",
+        "note": "dspack status/tags carried as catalog component metadata (x-dspack annotation)."
+      },
+      {
+        "source": "components.input.description",
+        "target": "components.TextField.description",
+        "class": "maps-cleanly",
+        "note": "dspack component description carried verbatim into the catalog component."
+      },
+      {
+        "source": "components.input",
+        "target": "components.TextField.properties.label",
+        "class": "synthesis-defaults",
+        "note": "A2UI TextField owns its label; dspack Input relies on an external <label> element, so the label is synthesized."
+      },
+      {
+        "source": "components.input",
+        "target": "components.TextField.properties.value",
+        "class": "synthesis-defaults",
+        "note": "A2UI two-way-binds value; dspack Input has no value prop in the contract."
+      },
+      {
+        "source": "components.input.props.type",
+        "target": "components.TextField.properties.variant",
+        "class": "lossy",
+        "note": "Enum projected 5->3 (many-to-one); distinct source variants collapse."
+      },
+      {
+        "source": "components.input.props.placeholder",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI TextField property corresponds to 'placeholder'."
+      },
+      {
+        "source": "components.input.props.disabled",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI TextField property corresponds to 'disabled'."
+      },
+      {
+        "source": "components.input.accessibility",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack accessibility is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.input.constraints",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack constraints is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.input.whenToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.input.whenNotToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenNotToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.input.{status,tags}",
+        "target": "components.TextField.x-dspack",
+        "class": "maps-cleanly",
+        "note": "dspack status/tags carried as catalog component metadata (x-dspack annotation)."
+      },
+      {
+        "source": "(synthesized)",
+        "target": "components.Text.properties.text",
+        "class": "synthesis-defaults",
+        "note": "A2UI content primitive required to render labels/titles in a surface."
+      },
+      {
+        "source": "(synthesized)",
+        "target": "components.Text.properties.variant",
+        "class": "synthesis-defaults",
+        "note": "A2UI-native property declared on a synthesized primitive (no dspack source)."
+      },
+      {
+        "source": "(synthesized)",
+        "target": "components.Column.properties.children",
+        "class": "synthesis-defaults",
+        "note": "A2UI structural primitive required to compose multiple children."
+      },
+      {
+        "source": "(synthesized)",
+        "target": "components.Column.properties.justify",
+        "class": "synthesis-defaults",
+        "note": "A2UI-native property declared on a synthesized primitive (no dspack source)."
+      },
+      {
+        "source": "(synthesized)",
+        "target": "components.Column.properties.align",
+        "class": "synthesis-defaults",
+        "note": "A2UI-native property declared on a synthesized primitive (no dspack source)."
+      },
+      {
+        "source": "components.badge",
+        "target": "components.Text",
+        "class": "lossy",
+        "note": "shadcn Badge has no native A2UI component. Its instances fold onto the Text primitive; the status-label semantics and the variant enum (default/secondary/outline/destructive) have no representation and are lost."
+      },
+      {
+        "source": "components.dialog",
+        "target": "components.Modal",
+        "class": "cannot-represent",
+        "note": "dspack Dialog is a compound component (DialogTrigger/Content/Header/Title/Description/Footer/Close) with required-children composition rules, focus management, and a11y roles. A2UI Modal exposes only trigger+content; the composition contract cannot be represented."
+      },
+      {
+        "source": "components.alert-dialog",
+        "target": "components.Modal",
+        "class": "cannot-represent",
+        "note": "Same composition loss as Dialog, plus the defining AlertDialog semantics (non-dismissible, alertdialog role, focus-to-cancel) have no A2UI catalog representation."
+      },
+      {
+        "source": "components.dropdown-menu",
+        "target": "(omitted)",
+        "class": "cannot-represent",
+        "note": "No A2UI basic component corresponds to a dropdown menu (items, checkbox/radio items, sub-menus, separators). Omitted."
+      },
+      {
+        "source": "tokens.color.primary",
+        "target": "theme.primaryColor / surfaceProperties.x-dspack-tokens",
+        "class": "synthesis-defaults",
+        "note": "dspack 'hsl(222.2, 47.4%, 11.2%)' converted to '#0f172a' to satisfy theme.primaryColor's #rrggbb pattern."
+      },
+      {
+        "source": "tokens.*",
+        "target": "theme/surfaceProperties.x-dspack-tokens",
+        "class": "synthesis-defaults",
+        "note": "Full token palette carried as a documented extension (additionalProperties allows it)."
+      },
+      {
+        "source": "tokens.*.{tier,aliasOf}",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "Token tier/alias relationships have no A2UI representation; only resolved values survive."
+      },
+      {
+        "source": "patterns",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "Usage patterns (preferred component combinations): A2UI catalogs describe renderable component shape, not design intent. Deliberate casualty."
+      },
+      {
+        "source": "antiPatterns",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "Anti-patterns (deliberately ruled-out approaches): A2UI catalogs describe renderable component shape, not design intent. Deliberate casualty."
+      },
+      {
+        "source": "frameworkBindings",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "Framework bindings (import paths / packages): A2UI catalogs describe renderable component shape, not design intent. Deliberate casualty."
+      },
+      {
+        "source": "layout",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "Layout primitives (breakpoints/grid/containers/spacing): A2UI catalogs describe renderable component shape, not design intent. Deliberate casualty."
+      },
+      {
+        "source": "themes",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "Named theme overrides (e.g. dark mode): A2UI catalogs describe renderable component shape, not design intent. Deliberate casualty."
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "code": "dropped-prop:button.size",
+      "message": "dspack button.size has no A2UI representation and was dropped."
+    },
+    {
+      "code": "dropped-prop:button.disabled",
+      "message": "dspack button.disabled has no A2UI representation and was dropped."
+    },
+    {
+      "code": "dropped-prop:button.asChild",
+      "message": "dspack button.asChild has no A2UI representation and was dropped."
+    },
+    {
+      "code": "dropped-prop:card.className",
+      "message": "dspack card.className has no A2UI representation and was dropped."
+    },
+    {
+      "code": "dropped-prop:input.placeholder",
+      "message": "dspack input.placeholder has no A2UI representation and was dropped."
+    },
+    {
+      "code": "dropped-prop:input.disabled",
+      "message": "dspack input.disabled has no A2UI representation and was dropped."
+    },
+    {
+      "code": "unsupported-component:badge",
+      "message": "dspack component 'badge' folds onto Text with loss: shadcn Badge has no native A2UI component. Its instances fold onto the Text primitive; the status-label semantics and the variant enum (default/secondary/outline/destructive) have no representation and are lost."
+    },
+    {
+      "code": "unsupported-component:dialog",
+      "message": "dspack component 'dialog' cannot be represented: dspack Dialog is a compound component (DialogTrigger/Content/Header/Title/Description/Footer/Close) with required-children composition rules, focus management, and a11y roles. A2UI Modal exposes only trigger+content; the composition contract cannot be represented."
+    },
+    {
+      "code": "unsupported-component:alert-dialog",
+      "message": "dspack component 'alert-dialog' cannot be represented: Same composition loss as Dialog, plus the defining AlertDialog semantics (non-dismissible, alertdialog role, focus-to-cancel) have no A2UI catalog representation."
+    },
+    {
+      "code": "unsupported-component:dropdown-menu",
+      "message": "dspack component 'dropdown-menu' cannot be represented: No A2UI basic component corresponds to a dropdown menu (items, checkbox/radio items, sub-menus, separators). Omitted."
+    },
+    {
+      "code": "unsupported-section:patterns",
+      "message": "dspack 'patterns' has no A2UI catalog representation (deliberate casualty)."
+    },
+    {
+      "code": "unsupported-section:antiPatterns",
+      "message": "dspack 'antiPatterns' has no A2UI catalog representation (deliberate casualty)."
+    },
+    {
+      "code": "unsupported-section:frameworkBindings",
+      "message": "dspack 'frameworkBindings' has no A2UI catalog representation (deliberate casualty)."
+    },
+    {
+      "code": "unsupported-section:layout",
+      "message": "dspack 'layout' has no A2UI catalog representation (deliberate casualty)."
+    },
+    {
+      "code": "unsupported-section:themes",
+      "message": "dspack 'themes' has no A2UI catalog representation (deliberate casualty)."
+    }
+  ],
+  "emittedComponents": [
+    "Button",
+    "Card",
+    "TextField",
+    "Text",
+    "Column"
+  ],
+  "primaryColor": {
+    "hex": "#0f172a",
+    "source": "tokens.color.primary"
+  }
+}

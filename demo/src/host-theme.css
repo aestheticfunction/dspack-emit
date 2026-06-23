@@ -1,0 +1,30 @@
+/*
+ * Host-supplied styling for the A2UI basic-catalog Button + TextField.
+ *
+ * Why this exists: @a2ui/react@0.10.1 ships EMPTY CSS-module maps for its
+ * interactive components in the published bundle (`Button_default = {}`,
+ * `TextField_default = {}`), so the variant classes (`primary`/`borderless`)
+ * never attach to the rendered <button>. In A2UI's architecture the *host*
+ * owns component presentation/theming, so we style these elements here — driven
+ * entirely by the same `--a2ui-*` design-token variables that the compiled
+ * dspack tokens populate (see App.tsx `a2uiThemeVars`). This is the documented
+ * "set the CSS var from the same token" path, not a bespoke color.
+ */
+.a2ui-surface button {
+  background: var(--a2ui-color-primary);
+  color: var(--a2ui-color-on-primary);
+  border: none;
+  border-radius: var(--a2ui-border-radius);
+  padding: 8px 16px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.a2ui-surface input {
+  border: var(--a2ui-border);
+  border-radius: var(--a2ui-border-radius);
+  padding: 8px 10px;
+  font: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
