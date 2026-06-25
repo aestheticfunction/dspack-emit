@@ -808,6 +808,127 @@
       "tokens": ["background", "foreground", "accent", "muted", "muted-foreground", "border", "radius"],
       "relatedComponents": ["button"],
       "tags": ["interactive", "menu", "overlay"]
+    },
+    "table": {
+      "name": "Table",
+      "description": "A set of primitives for presenting tabular data with a meaningful row-and-column relationship. These are thin, presentational wrappers over the native table elements — Table renders a <table> inside a horizontally scrollable container, and the sub-components render thead, tbody, tfoot, tr, th, td, and caption. There is no built-in sorting, filtering, pagination, or selection; those are composed on top.",
+      "status": "experimental",
+      "whenToUse": "Use to display data where each row is a record and each column is a comparable attribute: members and their roles, invoices, audit logs, permission lists. Reach for Table whenever the relationship between rows and columns carries meaning that assistive technology should be able to announce.",
+      "whenNotToUse": "Do not use Table to lay out or align non-tabular content — use CSS grid or flexbox for layout. Do not use a table to present a single record's key/value pairs; use a description list (dl) or a Card instead. For large interactive datasets, still use these primitives for markup but drive state with a headless table library rather than building a bespoke component.",
+      "accessibility": {
+        "role": "table",
+        "requiredAttributes": [
+          {
+            "attribute": "scope",
+            "condition": "on every TableHead (th) cell",
+            "description": "Set scope=\"col\" for column headers and scope=\"row\" for row headers so screen readers can associate each data cell with its header. Header cells must be th elements, not styled td cells."
+          },
+          {
+            "attribute": "aria-sort",
+            "condition": "on the TableHead (th) of a sortable column",
+            "description": "Reflect the column's current sort state as ascending, descending, or none. Only one column may expose a non-none value at a time so the active sort is unambiguous."
+          },
+          {
+            "attribute": "aria-label",
+            "condition": "when the table has no visible TableCaption and no aria-labelledby reference",
+            "description": "Give the table an accessible name with a literal label string so its purpose is announced when it receives focus or is navigated. Prefer a visible TableCaption where one is appropriate."
+          },
+          {
+            "attribute": "aria-labelledby",
+            "condition": "when the table has no visible TableCaption but an existing on-page heading names it",
+            "description": "Reference the id of the visible element that already names the table, instead of duplicating the name in an aria-label. Use either aria-labelledby or aria-label, not both."
+          }
+        ],
+        "labelRequirement": "required-accessible-name",
+        "notes": "Preserve the native semantic structure: real thead, tbody, tfoot, th, and td elements — never reconstruct a table from styled divs, which strips the row/column semantics screen readers depend on. Do NOT use Table for visual layout, alignment, or positioning; that is the job of CSS grid or flexbox. Provide an accessible name through TableCaption (preferred) or aria-label/aria-labelledby. A sortable column header must be a real Button inside the th, with the th carrying aria-sort, so the control is keyboard-operable and announced as a button."
+      },
+      "composition": {
+        "subComponents": [
+          {
+            "id": "table-header",
+            "name": "TableHeader",
+            "description": "The table's header section, rendered as a thead. Contains the header TableRow whose cells are TableHead elements.",
+            "slot": "header",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-body",
+            "name": "TableBody",
+            "description": "The table's body section, rendered as a tbody. Contains the data TableRows.",
+            "slot": "body",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-footer",
+            "name": "TableFooter",
+            "description": "The table's footer section, rendered as a tfoot. Use for summary rows such as totals.",
+            "slot": "footer",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-row",
+            "name": "TableRow",
+            "description": "A single row, rendered as a tr. Lives inside TableHeader, TableBody, or TableFooter and contains TableHead or TableCell elements.",
+            "acceptsChildren": "components"
+          },
+          {
+            "id": "table-head",
+            "name": "TableHead",
+            "description": "A header cell, rendered as a th. Carries scope and, when its column is sortable, aria-sort and a Button that toggles the sort.",
+            "slot": "columnheader",
+            "acceptsChildren": "any"
+          },
+          {
+            "id": "table-cell",
+            "name": "TableCell",
+            "description": "A data cell, rendered as a td. May contain plain text or interactive controls such as a Badge or a row actions menu.",
+            "acceptsChildren": "any"
+          },
+          {
+            "id": "table-caption",
+            "name": "TableCaption",
+            "description": "An accessible caption, rendered as a caption. Describes the table's contents and supplies its accessible name.",
+            "slot": "caption",
+            "acceptsChildren": "text"
+          }
+        ],
+        "notes": "TableRow must appear inside TableHeader, TableBody, or TableFooter — not directly under Table. Header cells use TableHead (th); data cells use TableCell (td). When present, TableCaption is the first child of Table. These primitives carry no data behavior; compose sorting, filtering, pagination, and selection on top of them."
+      },
+      "constraints": [
+        {
+          "context": "Displaying data with a meaningful row-and-column relationship",
+          "rule": "Use Table with semantic TableHeader/TableBody and TableHead/TableCell elements",
+          "severity": "should"
+        },
+        {
+          "context": "Visual layout, alignment, or positioning of non-tabular content",
+          "rule": "Use CSS grid or flexbox instead of Table",
+          "severity": "must-not"
+        },
+        {
+          "context": "Column and row header cells",
+          "rule": "Use TableHead (th) with an explicit scope attribute rather than a styled TableCell (td)",
+          "severity": "must"
+        },
+        {
+          "context": "A sortable column",
+          "rule": "Expose the sort state with aria-sort on the TableHead and make the trigger a real Button",
+          "severity": "must"
+        },
+        {
+          "context": "Sorting, filtering, pagination, or row selection over large datasets",
+          "rule": "Compose a headless table library such as TanStack Table on top of these primitives instead of hand-rolling the state",
+          "severity": "should"
+        },
+        {
+          "context": "Any data table",
+          "rule": "Give the table an accessible name describing its contents — a TableCaption (preferred), or aria-label/aria-labelledby",
+          "severity": "must"
+        }
+      ],
+      "tokens": ["background", "foreground", "muted", "muted-foreground", "border"],
+      "relatedComponents": ["badge", "button", "dropdown-menu"],
+      "tags": ["data", "table", "tabular", "display"]
     }
   },
   "patterns": [
@@ -843,6 +964,17 @@
       "guidance": "Use a Button with the ghost variant and icon size as the DropdownMenuTrigger. A vertical ellipsis icon is the conventional trigger for contextual menus. Group related actions with DropdownMenuGroup and separate groups with DropdownMenuSeparator. Place destructive actions (delete, remove) at the end of the menu, visually distinguished. Include keyboard shortcuts in DropdownMenuItem when available.",
       "relatedPatterns": ["destructive-action-confirmation"],
       "tags": ["actions", "menu", "overflow"]
+    },
+    {
+      "id": "data-table-with-row-actions",
+      "name": "Data Table with Row Actions",
+      "description": "An enterprise data table that presents records with a sortable header, a status column, and a trailing column of per-row actions — including destructive ones routed through a confirmation. Composes the Table primitives with Badge for status, a DropdownMenu (via the contextual-actions-menu pattern) for the actions column, and AlertDialog (via the destructive-action-confirmation pattern) for destructive actions.",
+      "intent": "Let users scan and act on a list of records — reviewing each row's status and reaching its actions — without sacrificing the semantics, keyboard access, or safety guarantees that the underlying components provide.",
+      "context": "Use for access-management and administrative surfaces: a members table, a users-and-roles list, an API-keys table, or any view where each row is an entity with a status and a set of actions, some of which (remove, revoke access) are destructive.",
+      "components": ["table", "badge", "button", "dropdown-menu", "alert-dialog"],
+      "guidance": "Build the table from the Table primitives: a TableHeader row of TableHead cells, a TableBody of one TableRow per record, and a TableCaption (or aria-label) naming the table. Make sortable columns real controls — render a ghost Button inside the TableHead and set aria-sort on that TableHead to ascending, descending, or none, with only one column sorted at a time. Render the status column with a Badge whose variant reflects state (for example default or secondary for active and pending, destructive for suspended or revoked); because Badge is presentational, keep the status readable as text so it is announced by assistive technology, not conveyed by color alone. Put per-row actions in a trailing TableCell as a contextual-actions-menu: a ghost icon Button (a vertical ellipsis) as the DropdownMenuTrigger opening a DropdownMenu of actions, with an aria-label on the trigger. Route every destructive row action — remove, revoke access — through the destructive-action-confirmation pattern using AlertDialog, never Dialog, so the action cannot be dismissed by accident; the AlertDialogDescription should name the specific record affected (for example 'This revokes Jordan Lee's access to the Acme workspace'). Do not make the entire TableRow a single clickable target while it also contains its own action controls — that is the nested-interactive-elements anti-pattern, which produces ambiguous click targets and unpredictable behavior for keyboard and screen-reader users; if rows need a primary navigation, expose it as a distinct link or cell control rather than wrapping the row.",
+      "relatedPatterns": ["contextual-actions-menu", "destructive-action-confirmation"],
+      "tags": ["table", "data", "actions", "access-management", "destructive"]
     }
   ],
   "antiPatterns": [
@@ -959,6 +1091,20 @@
             "dropdown-menu-sub": { "exportName": "DropdownMenuSub" },
             "dropdown-menu-sub-trigger": { "exportName": "DropdownMenuSubTrigger" },
             "dropdown-menu-sub-content": { "exportName": "DropdownMenuSubContent" }
+          }
+        },
+        "table": {
+          "importPath": "@/components/ui/table",
+          "installCommand": "npx shadcn@latest add table",
+          "guidance": "Pure HTML/CSS table primitives — no Radix dependency. Table renders a <table> wrapped in a horizontally scrollable container; the sub-components map directly to the native thead, tbody, tfoot, tr, th, td, and caption elements. The primitives are presentational only: sorting, filtering, pagination, and row selection are typically composed with TanStack Table (@tanstack/react-table) on top of them, where the headless library owns the data state and these components render the resulting rows and cells.",
+          "subComponents": {
+            "table-header": { "exportName": "TableHeader" },
+            "table-body": { "exportName": "TableBody" },
+            "table-footer": { "exportName": "TableFooter" },
+            "table-row": { "exportName": "TableRow" },
+            "table-head": { "exportName": "TableHead" },
+            "table-cell": { "exportName": "TableCell" },
+            "table-caption": { "exportName": "TableCaption" }
           }
         }
       }

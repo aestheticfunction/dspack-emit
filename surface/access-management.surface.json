@@ -1,0 +1,84 @@
+{
+  "name": "Access management page",
+  "description": "Hand-authored A2UI v0.9.1 surface for the prompt 'Build an access-management page with a revoke action'. Built from components compiled out of the shadcn/ui dspack contract: a Card containing a Column with a Text title/subtitle, a Table of workspace members (with a status Badge per row), and an AlertDialog 'revoke access' control. The revoke is a destructive, non-dismissible confirmation (the dspack destructive-action-confirmation pattern); confirming dispatches a revoke_access event. Renders off the generated catalog (createSurface.catalogId).",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "access-management",
+        "catalogId": "https://rdombrowski.dev/catalogs/shadcn-ui/v0_9_1/catalog.json",
+        "theme": {
+          "primaryColor": "#0f172a",
+          "agentDisplayName": "shadcn/ui via dspack"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "access-management",
+        "components": [
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "page_col"
+          },
+          {
+            "id": "page_col",
+            "component": "Column",
+            "children": ["title", "subtitle", "members_table", "revoke"],
+            "justify": "start",
+            "align": "stretch"
+          },
+          {
+            "id": "title",
+            "component": "Text",
+            "text": "Access management",
+            "variant": "h3"
+          },
+          {
+            "id": "subtitle",
+            "component": "Text",
+            "text": "Members with access to the Acme workspace. Revoking access is immediate and cannot be undone.",
+            "variant": "caption"
+          },
+          {
+            "id": "members_table",
+            "component": "Table",
+            "caption": "Workspace members",
+            "columns": ["Name", "Email", "Role", "Status"],
+            "rows": [
+              {
+                "cells": ["Jordan Lee", "jordan@acme.com", "Admin"],
+                "status": { "label": "Active", "variant": "default" }
+              },
+              {
+                "cells": ["Priya Patel", "priya@acme.com", "Editor"],
+                "status": { "label": "Pending", "variant": "secondary" }
+              },
+              {
+                "cells": ["Sam Rivera", "sam@acme.com", "Viewer"],
+                "status": { "label": "Suspended", "variant": "destructive" }
+              }
+            ]
+          },
+          {
+            "id": "revoke",
+            "component": "AlertDialog",
+            "triggerLabel": "Revoke Jordan Lee's access",
+            "title": "Revoke access?",
+            "description": "This revokes Jordan Lee's access to the Acme workspace. This action cannot be undone.",
+            "confirmLabel": "Revoke access",
+            "cancelLabel": "Cancel",
+            "action": {
+              "event": {
+                "name": "revoke_access",
+                "context": { "member": "jordan-lee" }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

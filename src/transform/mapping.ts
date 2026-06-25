@@ -5,6 +5,7 @@
  * dspack JSON and the profile — never framework code.
  */
 import type {
+  CoverageEntry,
   DspackComponent,
   DspackDoc,
   FidelityEntry,
@@ -26,6 +27,8 @@ export interface MappingResult {
   tokenExtension: Json;
   fidelity: FidelityEntry[];
   warnings: Warning[];
+  /** Disposition of every input dspack component (no silent drops). */
+  coverage: CoverageEntry[];
 }
 
 export function mapDspack(doc: DspackDoc, profile: Profile): MappingResult {
@@ -69,6 +72,11 @@ export function mapDspack(doc: DspackDoc, profile: Profile): MappingResult {
     }
   }
 
+  // Coverage: account for EVERY input dspack component. Anything not mapped,
+  // synthesized-from, declared a casualty, or intentionally omitted is a silent
+  // drop; surface it as `unclassified` with a warning and a fidelity entry.
+  const coverage = computeCoverage(doc, profile, warnings, fidelity);
+
   // Tokens -> primaryColor + palette extension.
   const { primaryColorHex, primaryColorSource, tokenExtension } = mapTokens(
     doc,
@@ -88,7 +96,56 @@ export function mapDspack(doc: DspackDoc, profile: Profile): MappingResult {
     tokenExtension,
     fidelity,
     warnings,
+    coverage,
   };
+}
+
+function computeCoverage(
+  doc: DspackDoc,
+  profile: Profile,
+  warnings: Warning[],
+  fidelity: FidelityEntry[],
+): CoverageEntry[] {
+  const mapped = new Map<string, string>(); // dspackId -> A2UI name
+  // Both `components` and any `synthesized` plan that declares a `dspackId` count as mapped.
+  for (const p of [...profile.components, ...profile.synthesized]) {
+    if (p.dspackId) mapped.set(p.dspackId, p.a2ui);
+  }
+
+  const casualties = new Map<string, (typeof profile.casualtyComponents)[number]>();
+  for (const c of profile.casualtyComponents) casualties.set(c.dspackId, c);
+
+  const omitted = new Set(profile.intentionallyOmitted ?? []);
+
+  const coverage: CoverageEntry[] = [];
+  for (const id of Object.keys(doc.components ?? {})) {
+    if (mapped.has(id)) {
+      coverage.push({ id, disposition: "mapped", detail: `-> ${mapped.get(id)}` });
+    } else if (omitted.has(id)) {
+      coverage.push({ id, disposition: "omitted", detail: "declared in profile.intentionallyOmitted" });
+    } else if (casualties.has(id)) {
+      const c = casualties.get(id)!;
+      coverage.push({
+        id,
+        disposition: c.class === "cannot-represent" ? "unsupported" : "adapted",
+        detail: c.attempted === "(none)" ? c.reason : `${c.attempted}: ${c.reason}`,
+      });
+    } else {
+      // Silent drop: not accounted for anywhere. Surface it loudly.
+      coverage.push({ id, disposition: "unclassified" });
+      warnings.push({
+        code: `unclassified-component:${id}`,
+        message: `dspack component '${id}' is not mapped, omitted, or declared a casualty. It was dropped with no representation. Add it to the profile (components, casualtyComponents, or intentionallyOmitted).`,
+      });
+      fidelity.push({
+        source: `components.${id}`,
+        target: "(silently dropped)",
+        class: "cannot-represent",
+        note: "Unclassified by the profile. This is a coverage gap, not a deliberate casualty.",
+      });
+    }
+  }
+  return coverage;
 }
 
 function buildComponent(

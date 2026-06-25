@@ -14,7 +14,8 @@
     "@a2ui/web_core": "0.10.3",
     "@a2ui/markdown-it": "0.0.4",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

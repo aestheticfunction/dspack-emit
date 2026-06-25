@@ -1,12 +1,12 @@
 {
   "name": "Account settings card",
-  "description": "Hand-authored A2UI v0.9.1 surface that instantiates components compiled from the shadcn/ui dspack contract: a Card containing a Column with a Text title, a TextField, and a primary Button. The theme.primaryColor is the shadcn `color.primary` token (hsl(222.2,47.4%,11.2%)) converted to #0f172a, so the primary Button paints in the design-system color. The createSurface.catalogId points at the A2UI basic catalog the stock renderer implements; the component objects below also validate against our generated catalog's #/$defs/anyComponent (validation gate 3).",
+  "description": "Hand-authored A2UI v0.9.1 surface that instantiates components compiled from the shadcn/ui dspack contract: a Card containing a Column with a Text title, a TextField, and a primary Button. The theme.primaryColor is the shadcn `color.primary` token (hsl(222.2,47.4%,11.2%)) converted to #0f172a, so the primary Button paints in the design-system color. The createSurface.catalogId points at our GENERATED catalog; the Phase 2 demo ingests that catalog and renders this surface off it, and the same component objects validate against the generated catalog's #/$defs/anyComponent (validation gate 3).",
   "messages": [
     {
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "settings-card",
-        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+        "catalogId": "https://rdombrowski.dev/catalogs/shadcn-ui/v0_9_1/catalog.json",
         "theme": {
           "primaryColor": "#0f172a",
           "agentDisplayName": "shadcn/ui via dspack"

@@ -34,3 +34,21 @@ export function transform(
 
   return { catalog, mapping, validation, report };
 }
+
+/**
+ * Convenience wrapper for in-process callers (tests, the ingestion acceptance gate):
+ * accepts a raw dspack object and options, defaults the surface, and returns the same
+ * `TransformOutput`. This is the thin overload the Phase 2 plan's precondition asks for;
+ * the underlying pipeline is unchanged.
+ */
+export function transformFromJson(
+  dspackJson: DspackDoc,
+  options: { a2uiVersion?: A2uiVersion; surface?: unknown; profile?: Profile } = {},
+): TransformOutput {
+  return transform(
+    dspackJson,
+    options.a2uiVersion ?? "0.9.1",
+    options.surface ?? { messages: [] },
+    options.profile ?? shadcnProfile,
+  );
+}

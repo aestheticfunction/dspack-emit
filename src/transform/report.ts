@@ -37,6 +37,10 @@ export function buildReport(
     warnings: mapping.warnings,
     emittedComponents: mapping.componentOrder,
     primaryColor: { hex: mapping.primaryColorHex, source: mapping.primaryColorSource },
+    coverage: {
+      unclassified: mapping.coverage.filter((c) => c.disposition === "unclassified").map((c) => c.id),
+      entries: mapping.coverage,
+    },
   };
 
   const md = [
@@ -69,6 +73,14 @@ export function buildReport(
     ...mapping.fidelity.map(
       (f) =>
         `| \`${f.source}\` | \`${f.target}\` | ${CLASS_LABEL[f.class]} | ${escapePipes(f.note)} |`,
+    ),
+    "",
+    `## Component coverage (every input dspack component accounted for)`,
+    "",
+    "| dspack component | Disposition | Detail |",
+    "| --- | --- | --- |",
+    ...mapping.coverage.map(
+      (c) => `| \`${c.id}\` | ${c.disposition === "unclassified" ? "⚠️ **unclassified**" : c.disposition} | ${escapePipes(c.detail ?? "")} |`,
     ),
     "",
     `## Warnings (unsupported dspack constructs)`,

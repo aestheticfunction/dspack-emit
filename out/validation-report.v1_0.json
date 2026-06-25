@@ -1,6 +1,6 @@
 {
   "a2uiVersion": "1.0",
-  "generatedAt": "2026-06-23T20:53:14.214Z",
+  "generatedAt": "2026-06-25T14:24:30.828Z",
   "validation": {
     "pass": true,
     "gates": [
@@ -23,10 +23,10 @@
   },
   "fidelity": {
     "summary": {
-      "maps-cleanly": 6,
-      "synthesis-defaults": 12,
-      "lossy": 3,
-      "cannot-represent": 27
+      "maps-cleanly": 12,
+      "synthesis-defaults": 23,
+      "lossy": 2,
+      "cannot-represent": 41
     },
     "entries": [
       {
@@ -216,6 +216,198 @@
         "note": "dspack status/tags carried as catalog component metadata (x-dspack annotation)."
       },
       {
+        "source": "components.badge.description",
+        "target": "components.Badge.description",
+        "class": "maps-cleanly",
+        "note": "dspack component description carried verbatim into the catalog component."
+      },
+      {
+        "source": "components.badge",
+        "target": "components.Badge.properties.label",
+        "class": "synthesis-defaults",
+        "note": "A2UI has no Badge; the label is synthesized from the badge's text child."
+      },
+      {
+        "source": "components.badge.props.variant",
+        "target": "components.Badge.properties.variant",
+        "class": "synthesis-defaults",
+        "note": "Property mapped onto the A2UI property."
+      },
+      {
+        "source": "components.badge.accessibility",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack accessibility is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.badge.whenToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.badge.whenNotToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenNotToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.badge.{status,tags}",
+        "target": "components.Badge.x-dspack",
+        "class": "maps-cleanly",
+        "note": "dspack status/tags carried as catalog component metadata (x-dspack annotation)."
+      },
+      {
+        "source": "components.table.description",
+        "target": "components.Table.description",
+        "class": "maps-cleanly",
+        "note": "dspack component description carried verbatim into the catalog component."
+      },
+      {
+        "source": "components.table",
+        "target": "components.Table.properties.caption",
+        "class": "synthesis-defaults",
+        "note": "A2UI has no Table; caption synthesized from TableCaption."
+      },
+      {
+        "source": "components.table",
+        "target": "components.Table.properties.columns",
+        "class": "synthesis-defaults",
+        "note": "Static column labels; A2UI has no table-header primitive."
+      },
+      {
+        "source": "components.table",
+        "target": "components.Table.properties.rows",
+        "class": "synthesis-defaults",
+        "note": "Row data carried as a static array; A2UI has no tabular data model."
+      },
+      {
+        "source": "components.table.accessibility",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack accessibility is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.table.composition",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack composition is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.table.constraints",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack constraints is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.table.whenToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.table.whenNotToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenNotToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.table.{status,tags}",
+        "target": "components.Table.x-dspack",
+        "class": "maps-cleanly",
+        "note": "dspack status/tags carried as catalog component metadata (x-dspack annotation)."
+      },
+      {
+        "source": "components.alert-dialog.description",
+        "target": "components.AlertDialog.description",
+        "class": "maps-cleanly",
+        "note": "dspack component description carried verbatim into the catalog component."
+      },
+      {
+        "source": "components.alert-dialog",
+        "target": "components.AlertDialog.properties.triggerLabel",
+        "class": "synthesis-defaults",
+        "note": "Trigger modeled as a label, not an AlertDialogTrigger sub-component."
+      },
+      {
+        "source": "components.alert-dialog",
+        "target": "components.AlertDialog.properties.title",
+        "class": "synthesis-defaults",
+        "note": "From AlertDialogTitle."
+      },
+      {
+        "source": "components.alert-dialog",
+        "target": "components.AlertDialog.properties.description",
+        "class": "synthesis-defaults",
+        "note": "From AlertDialogDescription."
+      },
+      {
+        "source": "components.alert-dialog",
+        "target": "components.AlertDialog.properties.confirmLabel",
+        "class": "synthesis-defaults",
+        "note": "From AlertDialogAction."
+      },
+      {
+        "source": "components.alert-dialog",
+        "target": "components.AlertDialog.properties.cancelLabel",
+        "class": "synthesis-defaults",
+        "note": "From AlertDialogCancel."
+      },
+      {
+        "source": "components.alert-dialog",
+        "target": "components.AlertDialog.properties.action",
+        "class": "synthesis-defaults",
+        "note": "A2UI declarative action; dspack expresses this as an onClick handler."
+      },
+      {
+        "source": "components.alert-dialog.props.open",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI AlertDialog property corresponds to 'open'."
+      },
+      {
+        "source": "components.alert-dialog.props.onOpenChange",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "No A2UI AlertDialog property corresponds to 'onOpenChange'."
+      },
+      {
+        "source": "components.alert-dialog.accessibility",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack accessibility is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.alert-dialog.composition",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack composition is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.alert-dialog.constraints",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack constraints is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.alert-dialog.whenToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.alert-dialog.whenNotToUse",
+        "target": "(dropped)",
+        "class": "cannot-represent",
+        "note": "dspack whenNotToUse is design-intent / a11y knowledge with no A2UI catalog representation."
+      },
+      {
+        "source": "components.alert-dialog.{status,tags}",
+        "target": "components.AlertDialog.x-dspack",
+        "class": "maps-cleanly",
+        "note": "dspack status/tags carried as catalog component metadata (x-dspack annotation)."
+      },
+      {
         "source": "(synthesized)",
         "target": "components.Text.properties.text",
         "class": "synthesis-defaults",
@@ -246,22 +438,10 @@
         "note": "A2UI-native property declared on a synthesized primitive (no dspack source)."
       },
       {
-        "source": "components.badge",
-        "target": "components.Text",
-        "class": "lossy",
-        "note": "shadcn Badge has no native A2UI component. Its instances fold onto the Text primitive; the status-label semantics and the variant enum (default/secondary/outline/destructive) have no representation and are lost."
-      },
-      {
         "source": "components.dialog",
         "target": "components.Modal",
         "class": "cannot-represent",
         "note": "dspack Dialog is a compound component (DialogTrigger/Content/Header/Title/Description/Footer/Close) with required-children composition rules, focus management, and a11y roles. A2UI Modal exposes only trigger+content; the composition contract cannot be represented."
-      },
-      {
-        "source": "components.alert-dialog",
-        "target": "components.Modal",
-        "class": "cannot-represent",
-        "note": "Same composition loss as Dialog, plus the defining AlertDialog semantics (non-dismissible, alertdialog role, focus-to-cancel) have no A2UI catalog representation."
       },
       {
         "source": "components.dropdown-menu",
@@ -345,16 +525,16 @@
       "message": "dspack input.disabled has no A2UI representation and was dropped."
     },
     {
-      "code": "unsupported-component:badge",
-      "message": "dspack component 'badge' folds onto Text with loss: shadcn Badge has no native A2UI component. Its instances fold onto the Text primitive; the status-label semantics and the variant enum (default/secondary/outline/destructive) have no representation and are lost."
+      "code": "dropped-prop:alert-dialog.open",
+      "message": "dspack alert-dialog.open has no A2UI representation and was dropped."
+    },
+    {
+      "code": "dropped-prop:alert-dialog.onOpenChange",
+      "message": "dspack alert-dialog.onOpenChange has no A2UI representation and was dropped."
     },
     {
       "code": "unsupported-component:dialog",
       "message": "dspack component 'dialog' cannot be represented: dspack Dialog is a compound component (DialogTrigger/Content/Header/Title/Description/Footer/Close) with required-children composition rules, focus management, and a11y roles. A2UI Modal exposes only trigger+content; the composition contract cannot be represented."
-    },
-    {
-      "code": "unsupported-component:alert-dialog",
-      "message": "dspack component 'alert-dialog' cannot be represented: Same composition loss as Dialog, plus the defining AlertDialog semantics (non-dismissible, alertdialog role, focus-to-cancel) have no A2UI catalog representation."
     },
     {
       "code": "unsupported-component:dropdown-menu",
@@ -385,11 +565,59 @@
     "Button",
     "Card",
     "TextField",
+    "Badge",
+    "Table",
+    "AlertDialog",
     "Text",
     "Column"
   ],
   "primaryColor": {
     "hex": "#0f172a",
     "source": "tokens.color.primary"
+  },
+  "coverage": {
+    "unclassified": [],
+    "entries": [
+      {
+        "id": "button",
+        "disposition": "mapped",
+        "detail": "-> Button"
+      },
+      {
+        "id": "alert-dialog",
+        "disposition": "mapped",
+        "detail": "-> AlertDialog"
+      },
+      {
+        "id": "dialog",
+        "disposition": "unsupported",
+        "detail": "Modal: dspack Dialog is a compound component (DialogTrigger/Content/Header/Title/Description/Footer/Close) with required-children composition rules, focus management, and a11y roles. A2UI Modal exposes only trigger+content; the composition contract cannot be represented."
+      },
+      {
+        "id": "card",
+        "disposition": "mapped",
+        "detail": "-> Card"
+      },
+      {
+        "id": "input",
+        "disposition": "mapped",
+        "detail": "-> TextField"
+      },
+      {
+        "id": "badge",
+        "disposition": "mapped",
+        "detail": "-> Badge"
+      },
+      {
+        "id": "dropdown-menu",
+        "disposition": "unsupported",
+        "detail": "No A2UI basic component corresponds to a dropdown menu (items, checkbox/radio items, sub-menus, separators). Omitted."
+      },
+      {
+        "id": "table",
+        "disposition": "mapped",
+        "detail": "-> Table"
+      }
+    ]
   }
 }

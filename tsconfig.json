@@ -14,5 +14,6 @@
     "outDir": "dist"
   },
   "include": ["src"],
-  "exclude": ["node_modules", "demo", "dist"]
+  "comment": "Test files are run + type-stripped by vitest/esbuild and may import the demo's React adapter; tsc here validates only the shippable transformer.",
+  "exclude": ["node_modules", "demo", "dist", "src/**/*.test.ts"]
 }

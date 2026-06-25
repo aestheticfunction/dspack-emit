@@ -45,10 +45,11 @@ Each emits a `unsupported-section:*` or per-component warning during transform.
 | `button` | `Button` | maps cleanly (shape) | structural slots synthesized; variant enum lossy (below). |
 | `card` | `Card` | maps cleanly (shape) | compound sub-components (Header/Content/Footer) collapse to one `child`. |
 | `input` | `TextField` | requires synthesis | `type`→`variant` projection (below); label synthesized. |
-| `badge` | `Text` (fold) | currently lossy | no native A2UI badge; status-label semantics + variant enum lost. |
-| `dialog` | `Modal` (attempted) | cannot be represented | compound composition + dismissal/a11y semantics unrepresentable; **omitted**. |
-| `alert-dialog` | `Modal` (attempted) | cannot be represented | as Dialog, plus alertdialog role / non-dismissible semantics. **omitted**. |
-| `dropdown-menu` | — | cannot be represented | no A2UI analog (items/sub-menus/separators). **omitted**. |
+| `badge` | `Badge` | requires synthesis | no native A2UI Badge; emitted as a synthesized shape. Variant enum (default/secondary/outline/destructive) carried verbatim; the React visual honors all four. |
+| `table` | `Table` | requires synthesis (composition lossy) | no native A2UI Table; emitted as a presentational shape (`caption`/`columns`/`rows`). The dspack sub-component composition (TableHeader/Body/Row/Head/Cell) **cannot be represented** and is recorded as a casualty. |
+| `alert-dialog` | `AlertDialog` | requires synthesis (composition lossy) | no native A2UI AlertDialog; emitted as a non-dismissible confirmation shape that preserves the defining distinction from Dialog. The rich sub-component composition (trigger/content/title/description/footer/action/cancel) **cannot be represented**. |
+| `dialog` | `Modal` (attempted) | cannot be represented | compound composition + dismissal/a11y semantics unrepresentable; **omitted** (casualty). |
+| `dropdown-menu` | — | cannot be represented | no A2UI analog (items/sub-menus/separators); **omitted** (casualty). |
 
 Two components are **synthesized** (present in the catalog, absent from dspack) because
 A2UI surfaces need them to be renderable and dspack — being a *component library*
@@ -56,8 +57,12 @@ contract, not a layout system — does not contain them:
 
 | Synthesized | Why |
 | --- | --- |
-| `Text` | A2UI content primitive for titles/labels. (`badge` folds onto it.) |
+| `Text` | A2UI content primitive for titles/labels. |
 | `Column` | A2UI structural primitive; dspack's `layout` block is descriptive, not a component. |
+
+`Table`, `Badge`, and `AlertDialog` above are likewise synthesized component *shapes* (A2UI's
+Basic Catalog has no equivalent), emitted from their dspack entries with hand-authored React
+visuals in `demo/src/ingest/components/`. Their dspack composition is a documented casualty.
 
 ## Properties
 

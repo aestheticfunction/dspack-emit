@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MessageProcessor, type A2uiClientAction } from "@a2ui/web_core/v0_9";
-import {
-  basicCatalog,
-  A2uiSurface,
-  MarkdownContext,
-  type ReactComponentImplementation,
-} from "@a2ui/react/v0_9";
+import { A2uiSurface, MarkdownContext, type ReactComponentImplementation } from "@a2ui/react/v0_9";
 import { renderMarkdown } from "@a2ui/markdown-it";
+import { buildCatalog, registry } from "./ingest";
 
 // The exact same artifacts the transformer produced — imported, not duplicated.
-import surfaceDoc from "../../surface/settings-card.surface.json";
+import settingsSurface from "../../surface/settings-card.surface.json";
+import accessSurface from "../../surface/access-management.surface.json";
 import catalog from "../../out/catalog.v0_9_1.json";
+
+const SURFACES: Record<string, { label: string; doc: any }> = {
+  access: { label: "Access management (revoke)", doc: accessSurface },
+  settings: { label: "Account settings", doc: settingsSurface },
+};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type AnyCatalog = any;
@@ -27,10 +29,12 @@ function buttonVariantInfo(cat: AnyCatalog) {
 }
 
 function componentProvenance(cat: AnyCatalog): Array<{ a2ui: string; source: string }> {
-  return Object.entries(cat.components).map(([name, schema]: [string, any]) => ({
-    a2ui: name,
-    source: schema["x-dspack"]?.sourceId ?? "(synthesized primitive)",
-  }));
+  return Object.entries(cat.components).map(([name, schema]: [string, any]) => {
+    // x-dspack lives on the component's inline allOf object (or the component root).
+    const meta =
+      schema["x-dspack"] ?? schema.allOf?.find((s: any) => s["x-dspack"])?.["x-dspack"];
+    return { a2ui: name, source: meta?.sourceId ?? "(synthesized primitive)" };
+  });
 }
 
 /**
@@ -54,25 +58,37 @@ function a2uiThemeVars(cat: AnyCatalog): React.CSSProperties {
     ["--a2ui-color-background" as any]: c.background,
     ["--a2ui-color-on-background" as any]: c.foreground,
     ["--a2ui-border" as any]: `1px solid ${c.border}`,
+    ["--a2ui-color-border" as any]: c.border,
+    ["--a2ui-color-muted" as any]: c.muted,
+    ["--a2ui-color-muted-foreground" as any]: c["muted-foreground"],
     ["--a2ui-border-radius" as any]: radius,
     ["--a2ui-color-error" as any]: c.destructive,
+    ["--a2ui-color-on-error" as any]: c["destructive-foreground"],
   };
 }
 
 export function App() {
+  const [surfaceKey, setSurfaceKey] = useState<string>("access");
   const [surface, setSurface] = useState<AnySurface | null>(null);
   const [actions, setActions] = useState<A2uiClientAction[]>([]);
 
+  // Build a renderable Catalog from the GENERATED catalog JSON (its vocabulary + accepted
+  // schema come from the file via the ingestion adapter). Reused basics delegate their visual
+  // to the Basic Catalog; unimplemented names render a visible placeholder.
+  const ingested = useMemo(() => buildCatalog(catalog as any, registry), []);
+
   useEffect(() => {
+    setActions([]);
+    setSurface(null);
     const processor = new MessageProcessor<ReactComponentImplementation>(
-      [basicCatalog],
+      [ingested.catalog],
       async (action: A2uiClientAction) => setActions((prev) => [...prev, action]),
     );
-    processor.processMessages(structuredClone(surfaceDoc.messages) as any);
+    processor.processMessages(structuredClone(SURFACES[surfaceKey].doc.messages) as any);
     const model = Array.from(processor.model.surfacesMap.values())[0];
     if (model) setSurface(processor.model.getSurface(model.id));
     return () => processor.model.dispose();
-  }, []);
+  }, [ingested, surfaceKey]);
 
   const primaryColor = catalog.$defs.theme.properties.primaryColor.default as string;
   const btn = buttonVariantInfo(catalog);
@@ -83,9 +99,28 @@ export function App() {
       <header style={styles.header}>
         <h1 style={styles.h1}>dspack → A2UI</h1>
         <p style={styles.sub}>
-          A surface compiled from the <code>shadcn/ui</code> dspack contract, rendered through the
-          published <code>@a2ui/react</code> v0.9.1 renderer.
+          A surface compiled from the <code>shadcn/ui</code> dspack contract, rendered off the
+          <strong> generated catalog</strong> ingested into the <code>@a2ui/react</code> v0.9.1
+          renderer.
         </p>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          {Object.entries(SURFACES).map(([key, s]) => (
+            <button
+              key={key}
+              onClick={() => setSurfaceKey(key)}
+              style={{
+                ...styles.code,
+                cursor: "pointer",
+                border: "1px solid #cbd5e1",
+                background: key === surfaceKey ? "#0f172a" : "#fff",
+                color: key === surfaceKey ? "#fff" : "#0f172a",
+                padding: "6px 12px",
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </header>
 
       <main style={styles.grid}>
@@ -102,9 +137,18 @@ export function App() {
             )}
           </div>
           <p style={styles.note}>
-            Rendered by the stock A2UI <strong>Basic Catalog</strong> renderer (it implements fixed
-            component names; it does not ingest a custom catalog). The same component objects also
-            validate against our generated catalog — see the panel at right.
+            Rendered off our <strong>generated catalog</strong> (id <code>{ingested.catalog.id}</code>):
+            the accepted component vocabulary and each component's schema are built from
+            <code> out/catalog.v0_9_1.json</code> by the ingestion adapter. Reused basics
+            (<code>{[...registry.reuseBasic].filter((n) => ingested.names.includes(n)).join(", ")}</code>)
+            delegate their visual to the Basic Catalog; the catalog still governs what the renderer
+            accepts.
+            {ingested.unimplemented.length > 0 && (
+              <>
+                {" "}
+                Unimplemented visuals: <code>{ingested.unimplemented.join(", ")}</code>.
+              </>
+            )}
           </p>
           {actions.length > 0 && (
             <p style={styles.note}>

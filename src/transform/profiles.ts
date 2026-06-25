@@ -30,6 +30,8 @@ export interface Profile {
   components: ComponentPlan[];
   synthesized: ComponentPlan[];
   casualtyComponents: CasualtyComponent[];
+  /** dspack component ids deliberately left out (not mapped, not a casualty). */
+  intentionallyOmitted?: string[];
 }
 
 export interface ComponentPlan {
@@ -182,6 +184,98 @@ export const shadcnProfile: Profile = {
       },
       required: ["label"],
     },
+
+    {
+      // shadcn Badge -> a real A2UI Badge component shape (variant enum carried verbatim).
+      a2ui: "Badge",
+      dspackId: "badge",
+      commons: ["ComponentCommon"],
+      structural: {
+        label: {
+          schema: DynStr,
+          description: "The badge text.",
+          synthNote: "A2UI has no Badge; the label is synthesized from the badge's text child.",
+        },
+      },
+      propMap: {
+        variant: {
+          a2ui: "variant",
+          kind: "enum",
+          targetEnum: ["default", "secondary", "outline", "destructive"],
+          default: "default",
+          description: "Badge visual treatment (carried verbatim from shadcn; the React visual honors all four).",
+        },
+      },
+      required: ["label"],
+    },
+
+    {
+      // shadcn Table -> a synthesized presentational A2UI Table shape (caption/columns/rows).
+      // The dspack sub-component composition (header/body/row/cell) cannot be represented and
+      // is recorded as a casualty by the per-component composition handling.
+      a2ui: "Table",
+      dspackId: "table",
+      commons: ["ComponentCommon"],
+      structural: {
+        caption: {
+          schema: DynStr,
+          description: "Accessible caption naming the table.",
+          synthNote: "A2UI has no Table; caption synthesized from TableCaption.",
+        },
+        columns: {
+          schema: { type: "array", items: { type: "string" } },
+          description: "Header labels for the data columns (a trailing status column is rendered separately).",
+          synthNote: "Static column labels; A2UI has no table-header primitive.",
+        },
+        rows: {
+          schema: { type: "array", items: { type: "object" } },
+          description: "Row records, each { cells: string[], status?: { label, variant } }.",
+          synthNote: "Row data carried as a static array; A2UI has no tabular data model.",
+        },
+      },
+      required: ["columns", "rows"],
+    },
+
+    {
+      // shadcn AlertDialog -> a synthesized non-dismissible confirmation. Preserves the
+      // defining distinction from Dialog; the rich composition is a documented casualty.
+      a2ui: "AlertDialog",
+      dspackId: "alert-dialog",
+      commons: ["ComponentCommon"],
+      structural: {
+        triggerLabel: {
+          schema: DynStr,
+          description: "Label of the button that opens the confirmation.",
+          synthNote: "Trigger modeled as a label, not an AlertDialogTrigger sub-component.",
+        },
+        title: {
+          schema: DynStr,
+          description: "Confirmation title.",
+          synthNote: "From AlertDialogTitle.",
+        },
+        description: {
+          schema: DynStr,
+          description: "Consequence description shown in the confirmation.",
+          synthNote: "From AlertDialogDescription.",
+        },
+        confirmLabel: {
+          schema: DynStr,
+          description: "Label of the destructive confirm action.",
+          synthNote: "From AlertDialogAction.",
+        },
+        cancelLabel: {
+          schema: DynStr,
+          description: "Label of the cancel action.",
+          synthNote: "From AlertDialogCancel.",
+        },
+        action: {
+          schema: { $ref: "#/$defs/Action" },
+          description: "Event dispatched when the user confirms the destructive action.",
+          synthNote: "A2UI declarative action; dspack expresses this as an onClick handler.",
+        },
+      },
+      required: ["triggerLabel", "title", "action"],
+    },
   ],
 
   synthesized: [
@@ -243,15 +337,6 @@ export const shadcnProfile: Profile = {
 
   casualtyComponents: [
     {
-      dspackId: "badge",
-      attempted: "Text",
-      class: "lossy",
-      reason:
-        "shadcn Badge has no native A2UI component. Its instances fold onto the Text primitive; " +
-        "the status-label semantics and the variant enum (default/secondary/outline/destructive) " +
-        "have no representation and are lost.",
-    },
-    {
       dspackId: "dialog",
       attempted: "Modal",
       class: "cannot-represent",
@@ -259,14 +344,6 @@ export const shadcnProfile: Profile = {
         "dspack Dialog is a compound component (DialogTrigger/Content/Header/Title/Description/" +
         "Footer/Close) with required-children composition rules, focus management, and a11y roles. " +
         "A2UI Modal exposes only trigger+content; the composition contract cannot be represented.",
-    },
-    {
-      dspackId: "alert-dialog",
-      attempted: "Modal",
-      class: "cannot-represent",
-      reason:
-        "Same composition loss as Dialog, plus the defining AlertDialog semantics (non-dismissible, " +
-        "alertdialog role, focus-to-cancel) have no A2UI catalog representation.",
     },
     {
       dspackId: "dropdown-menu",

@@ -178,6 +178,171 @@
       ],
       "unevaluatedProperties": false
     },
+    "Badge": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Badge"
+            },
+            "label": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "The badge text."
+            },
+            "variant": {
+              "type": "string",
+              "description": "Badge visual treatment (carried verbatim from shadcn; the React visual honors all four).",
+              "enum": [
+                "default",
+                "secondary",
+                "outline",
+                "destructive"
+              ],
+              "default": "default",
+              "x-dspack-source": {
+                "sourceProp": "variant",
+                "sourceType": "enum",
+                "sourceEnum": [
+                  "default",
+                  "secondary",
+                  "outline",
+                  "destructive"
+                ]
+              }
+            }
+          },
+          "required": [
+            "component",
+            "label"
+          ],
+          "description": "A small label for categorization, status indication, or metadata. Renders as an inline element.",
+          "x-dspack": {
+            "sourceId": "badge",
+            "status": "experimental",
+            "tags": [
+              "display",
+              "status",
+              "label"
+            ]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Table": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "Table"
+            },
+            "caption": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Accessible caption naming the table."
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Header labels for the data columns (a trailing status column is rendered separately)."
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "description": "Row records, each { cells: string[], status?: { label, variant } }."
+            }
+          },
+          "required": [
+            "component",
+            "columns",
+            "rows"
+          ],
+          "description": "A set of primitives for presenting tabular data with a meaningful row-and-column relationship. These are thin, presentational wrappers over the native table elements — Table renders a <table> inside a horizontally scrollable container, and the sub-components render thead, tbody, tfoot, tr, th, td, and caption. There is no built-in sorting, filtering, pagination, or selection; those are composed on top.",
+          "x-dspack": {
+            "sourceId": "table",
+            "status": "experimental",
+            "tags": [
+              "data",
+              "table",
+              "tabular",
+              "display"
+            ]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "AlertDialog": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/ComponentCommon"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "const": "AlertDialog"
+            },
+            "triggerLabel": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Label of the button that opens the confirmation."
+            },
+            "title": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Confirmation title."
+            },
+            "description": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Consequence description shown in the confirmation."
+            },
+            "confirmLabel": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Label of the destructive confirm action."
+            },
+            "cancelLabel": {
+              "$ref": "#/$defs/DynamicString",
+              "description": "Label of the cancel action."
+            },
+            "action": {
+              "$ref": "#/$defs/Action",
+              "description": "Event dispatched when the user confirms the destructive action."
+            }
+          },
+          "required": [
+            "component",
+            "triggerLabel",
+            "title",
+            "action"
+          ],
+          "description": "A modal dialog that interrupts the user with important content and expects a response. Built on Radix UI AlertDialog. Renders with a required action and a cancel option. The user cannot dismiss it by clicking the overlay or pressing Escape — they must choose an explicit action.",
+          "x-dspack": {
+            "sourceId": "alert-dialog",
+            "status": "stable",
+            "tags": [
+              "modal",
+              "confirmation",
+              "destructive",
+              "accessibility"
+            ]
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
     "Text": {
       "type": "object",
       "allOf": [
@@ -535,6 +700,15 @@
         },
         {
           "$ref": "#/components/TextField"
+        },
+        {
+          "$ref": "#/components/Badge"
+        },
+        {
+          "$ref": "#/components/Table"
+        },
+        {
+          "$ref": "#/components/AlertDialog"
         },
         {
           "$ref": "#/components/Text"

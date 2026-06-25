@@ -98,10 +98,11 @@ npm run dev      # open the printed localhost URL
 ```
 
 The demo loads `surface/settings-card.surface.json` and the generated
-`out/catalog.v0_9_1.json`, runs the surface through
-`MessageProcessor([basicCatalog])` from `@a2ui/web_core/v0_9`, and renders it with
-`<A2uiSurface>` from `@a2ui/react/v0_9`. A side panel shows what survived the transform
-(component provenance, the lossy Button variant projection, the primary token).
+`out/catalog.v0_9_1.json`, **ingests that catalog** into a renderable
+`Catalog<ReactComponentImplementation>` (see [Phase 2](#phase-2-rendering-off-the-generated-catalog)),
+runs the surface through `MessageProcessor([ingestedCatalog])` from `@a2ui/web_core/v0_9`,
+and renders it with `<A2uiSurface>` from `@a2ui/react/v0_9`. A side panel shows what survived
+the transform (component provenance, the lossy Button variant projection, the primary token).
 
 **What this demonstrates — and its honest scope:**
 
@@ -115,10 +116,11 @@ The demo loads `surface/settings-card.surface.json` and the generated
 
 **Framing caveats (not overstated):**
 
-- The stock A2UI React renderer renders its built-in **Basic Catalog** vocabulary; it
-  does **not** ingest an arbitrary custom catalog (no React renderer does today). So
-  this is a **Basic-Catalog-compatibility** proof. The link back to our generated
-  catalog is the **instance gate**: the same surface objects validate against it.
+- The surface renders **off the generated catalog**: the accepted component vocabulary and
+  each component's schema are built from `out/catalog.v0_9_1.json` at load time (Phase 2).
+  The catalog governs names, props, and accept/refuse; the per-component **visual** is either
+  reused from the Basic Catalog (Button, Card, Text, TextField, Column) or hand-authored. See
+  the Phase 2 section for exactly where ingestion ends and hand-authoring begins.
 - A2UI's model puts **component theming/presentation on the host**. The published
   `@a2ui/react@0.10.1` ships empty CSS-module maps for its interactive components
   (`Button_default = {}`), so the host (`demo/src/host-theme.css`) supplies the button/
@@ -126,6 +128,61 @@ The demo loads `surface/settings-card.surface.json` and the generated
 - **v1.0 is validated, not rendered** — maintained React renderers are stable on
   v0.9.1; a v1.0 catalog must pass schema validation but is not required to render until
   renderers ship v1.0 support.
+
+## Phase 2: rendering off the generated catalog
+
+Phase 1 closed the loop at validation. Phase 2 makes the renderer **ingest** the generated
+catalog: the accepted component vocabulary and each component's accepted schema are
+constructed from `out/catalog.v*.json`, not from a hand-maintained list.
+
+How it works (`demo/src/ingest/`, a generic, dspack-agnostic adapter):
+
+- `buildComponentApi` turns one catalog component (JSON Schema) into a renderer
+  `ComponentApi` (`{ name, schema: Zod }`). It classifies each property from the catalog
+  itself, mapping the standard A2UI common-type `$ref` names (`DynamicString`, `Action`,
+  `ChildList`, `ComponentId`, ...) to the canonical Zod schemas exported by
+  `@a2ui/web_core/v0_9`, so the renderer's `scrapeSchemaBehavior` recognizes binding. This
+  is **generic A2UI ingestion**: it works on any conformant catalog, inlined or not. An
+  optional `x-a2ui` hint can disambiguate, but the adapter works with it entirely absent.
+- `buildCatalog` iterates `catalog.components` (no hardcoded names) and pairs each with a
+  React visual from the `registry`: either delegated to the Basic Catalog, hand-authored, or
+  a visible "unimplemented" placeholder. It constructs `new Catalog(catalog.catalogId, ...)`.
+
+**Where ingestion ends and hand-authoring begins (the honest split):** for every emitted
+component the catalog governs the name, props, enums, defaults, and accept/refuse (true
+ingestion). The per-component **visual** is reused (Button, Card, Text, TextField, Column) or
+hand-authored. The renderer code (`demo/src/ingest/`) contains no component-name list; the
+`registry` is the one hand-authored boundary.
+
+**The acceptance gates** (`src/ingestion.test.ts`, run by `npm test`) prove this: recompiling
+a changed contract changes the renderer's accepted vocabulary (Gate A, +`Table`) and accepted
+props (Gate B, a new Button variant) with **no edit to the adapter or registry**; a catalog
+name without a visual is a distinct, visible "unimplemented" state vs an absent name's
+"Unknown component" (Gate C); `scrapeSchemaBehavior` recognizes the ingested dynamic/action/
+child-list/checkable props (binding fidelity); Tier 1 works with `x-a2ui` stripped (tier
+independence); and a static check enforces the no-hardcoded-names rule (negative control).
+
+**No silent drops:** the transform now classifies **every** input dspack component as
+mapped / adapted / omitted / unsupported and reports it (the `## Component coverage` section
+of each validation report). An unclassified component emits a warning and, under
+`--strict-coverage`, fails the CLI (exit 3).
+
+**Access-management demo (P4/P5).** The updated dspack adds a `table` component and a
+`data-table-with-row-actions` pattern, so the demo now includes a second surface,
+`surface/access-management.surface.json`, for the prompt *"Build an access-management page
+with a revoke action."* It renders off the generated catalog using ingested `Table` and
+`Badge` components plus an `AlertDialog`. The **revoke** action is a destructive,
+**non-dismissible** confirmation (the dspack `destructive-action-confirmation` pattern, and
+the AlertDialog-vs-Dialog distinction): clicking the overlay does not dismiss it, and
+confirming dispatches a `revoke_access` event through the A2UI action mechanism. As before,
+the catalog governs names/props/accept-refuse; the `Table`/`Badge`/`AlertDialog` **visuals**
+are hand-authored React in `demo/src/ingest/components/`.
+
+**Honest scope / not yet done:** surfaces are hand-authored (the demo does **not** yet
+generate surfaces from dspack patterns); `Table`/`Badge`/`AlertDialog` are synthesized A2UI
+component *shapes* (the dspack sub-component composition is a documented casualty, not a
+faithful compound contract); `dialog` and `dropdown-menu` remain unsupported casualties; and
+v1.0 remains validated, not rendered.
 
 ## Pinned versions
 

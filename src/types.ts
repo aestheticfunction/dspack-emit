@@ -104,3 +104,20 @@ export interface Warning {
   code: string;
   message: string;
 }
+
+// ---------------------------------------------------------------------------
+// Coverage: every input dspack component must be explicitly accounted for.
+// ---------------------------------------------------------------------------
+
+export type Disposition =
+  | "mapped" // emitted as an A2UI component derived from this dspack component
+  | "adapted" // emitted but lossy (folds onto another component)
+  | "omitted" // intentionally left out (declared in the profile)
+  | "unsupported" // cannot be represented (declared casualty)
+  | "unclassified"; // NOT accounted for anywhere — a silent drop, now surfaced
+
+export interface CoverageEntry {
+  id: string; // dspack component id
+  disposition: Disposition;
+  detail?: string;
+}

@@ -30,7 +30,16 @@ describe("color synthesis", () => {
 describe("profile mapping", () => {
   const { catalog, mapping } = transform(doc, "0.9.1", surface);
   it("emits the expected component set", () => {
-    expect(Object.keys(catalog.components)).toEqual(["Button", "Card", "TextField", "Text", "Column"]);
+    expect(Object.keys(catalog.components)).toEqual([
+      "Button",
+      "Card",
+      "TextField",
+      "Badge",
+      "Table",
+      "AlertDialog",
+      "Text",
+      "Column",
+    ]);
   });
   it("projects the 6 shadcn Button variants onto 3 A2UI variants (lossy)", () => {
     const variant = (catalog.components.Button as any).allOf.at(-1).properties.variant;
@@ -41,11 +50,18 @@ describe("profile mapping", () => {
     );
     expect(lossy?.class).toBe("lossy");
   });
-  it("records dialog/alert-dialog/dropdown-menu as cannot-represent casualties", () => {
-    for (const id of ["dialog", "alert-dialog", "dropdown-menu"]) {
+  it("records dialog/dropdown-menu as cannot-represent casualties", () => {
+    for (const id of ["dialog", "dropdown-menu"]) {
       const f = mapping.fidelity.find((e) => e.source === `components.${id}`);
       expect(f?.class).toBe("cannot-represent");
     }
+  });
+  it("emits Table/Badge/AlertDialog but records their composition loss as a casualty", () => {
+    // alert-dialog is now emitted as a component, yet its dspack composition cannot survive.
+    const composition = mapping.fidelity.find(
+      (e) => e.source === "components.alert-dialog.composition",
+    );
+    expect(composition?.class).toBe("cannot-represent");
   });
   it("warns about the unsupported dspack knowledge layer", () => {
     const codes = mapping.warnings.map((w) => w.code);

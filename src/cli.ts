@@ -17,11 +17,15 @@ interface Args {
   version: A2uiVersion;
   out: string;
   surface: string;
+  strictCoverage: boolean;
 }
 
+/** Flags that take no value; their presence means `true`. */
+const BOOLEAN_FLAGS = new Set(["strict-coverage"]);
+
 function parseArgs(argv: string[]): Args {
-  // Supports `--key value` and `--key=value`; fails fast on a malformed flag or a
-  // `--key` missing its value rather than silently recording `undefined`.
+  // Supports `--key value`, `--key=value`, and valueless boolean flags; fails fast
+  // on a malformed flag or a value-taking `--key` missing its value.
   const m = new Map<string, string>();
   for (let i = 0; i < argv.length; i++) {
     const tok = argv[i];
@@ -29,6 +33,8 @@ function parseArgs(argv: string[]): Args {
     const eq = tok.indexOf("=");
     if (eq !== -1) {
       m.set(tok.slice(2, eq), tok.slice(eq + 1));
+    } else if (BOOLEAN_FLAGS.has(tok.slice(2))) {
+      m.set(tok.slice(2), "true");
     } else {
       const value = argv[++i];
       if (value === undefined) fail(`flag '${tok}' is missing a value`);
@@ -46,6 +52,7 @@ function parseArgs(argv: string[]): Args {
     version: version as A2uiVersion,
     out: m.get("out") ?? "out",
     surface: m.get("surface") ?? "surface/settings-card.surface.json",
+    strictCoverage: m.get("strict-coverage") === "true",
   };
 }
 
@@ -61,7 +68,7 @@ function main(): void {
   const doc = JSON.parse(readFileSync(resolve(args.in), "utf8")) as DspackDoc;
   const surface = JSON.parse(readFileSync(resolve(args.surface), "utf8"));
 
-  const { catalog, validation, report } = transform(doc, args.version, surface);
+  const { catalog, mapping, validation, report } = transform(doc, args.version, surface);
 
   mkdirSync(resolve(args.out), { recursive: true });
   const base = resolve(args.out);
@@ -75,7 +82,13 @@ function main(): void {
   for (const g of validation.gates) console.log(`${tag}   ${g.pass ? "PASS" : "FAIL"}  ${g.name}`);
   console.log(`${tag} ${validation.pass ? "VALIDATION PASSED" : "VALIDATION FAILED"}`);
 
+  const unclassified = mapping.coverage.filter((c) => c.disposition === "unclassified");
+  if (unclassified.length) {
+    console.log(`${tag} COVERAGE: ${unclassified.length} unclassified component(s): ${unclassified.map((c) => c.id).join(", ")}`);
+  }
+
   if (!validation.pass) process.exit(1);
+  if (args.strictCoverage && unclassified.length) process.exit(3);
 }
 
 main();
