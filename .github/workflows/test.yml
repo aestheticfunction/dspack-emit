@@ -1,0 +1,26 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm install --prefix demo
+      - name: Unit + gate tests (A1–A3, surface emitter, ingestion)
+        run: npm test
+      - name: Catalog emission (both A2UI versions) + surface emission
+        run: |
+          npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 0.9.1 --out out --emit-surface surface/delete-account.dsurface.json
+          npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 1.0 --out out
+      - name: Pack-and-install boundary test
+        run: npm run test:pack

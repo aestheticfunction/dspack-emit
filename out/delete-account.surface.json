@@ -1,0 +1,43 @@
+{
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "destructive_action",
+        "catalogId": "https://rdombrowski.dev/catalogs/shadcn-ui/v0_9_1/catalog.json",
+        "theme": {
+          "agentDisplayName": "shadcn/ui via dspack",
+          "primaryColor": "#0f172a"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "destructive_action",
+        "components": [
+          {
+            "id": "card",
+            "component": "Card",
+            "child": "alertdialog"
+          },
+          {
+            "id": "alertdialog",
+            "component": "AlertDialog",
+            "triggerLabel": "Delete account",
+            "title": "Delete your account?",
+            "description": "This will permanently delete your account and all associated data. This action cannot be undone.",
+            "cancelLabel": "Cancel",
+            "confirmLabel": "Delete account",
+            "action": {
+              "event": {
+                "name": "delete_account",
+                "context": {}
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
