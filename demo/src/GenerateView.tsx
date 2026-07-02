@@ -138,7 +138,7 @@ export function GenerateView({
             </label>
             <label style={{ ...s.label, flexDirection: "row", alignItems: "center", gap: 6 }}>
               <input data-testid="fake-toggle" type="checkbox" checked={fake} onChange={(e) => setFake(e.target.checked)} />
-              fake pipeline (deterministic scripted adapter)
+              scripted fixture replay (deterministic fake adapter — not live generation)
             </label>
             <label style={s.label}>
               serve URL
