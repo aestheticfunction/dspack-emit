@@ -172,7 +172,7 @@ class SurfaceEmitter {
         if (sp.childrenProp) {
           instance[sp.childrenProp] = childIds;
         } else if (sp.childProp) {
-          instance[sp.childProp] = childIds.length === 1 ? childIds[0] : this.wrapInColumn(childIds, id);
+          instance[sp.childProp] = childIds.length === 1 ? childIds[0] : this.wrapInColumn(childIds, id, path);
         } else {
           throw new EmitSurfaceError(
             `component '${node.component}' has children but its surface plan declares no child slot`,
@@ -228,8 +228,11 @@ class SurfaceEmitter {
       }
       const buttonProp = insideSub ? subButtonText[insideSub] : undefined;
       if (buttonProp !== undefined && n.text !== undefined && instance[buttonProp] === undefined && n !== node) {
-        // First text found under the tracked sub-component (typically its button).
-        if (!(n.component in subText)) instance[buttonProp] = n.text;
+        // Only a label-bearing component qualifies (one whose surface plan
+        // projects its text as a child label, e.g. the trigger's button) —
+        // never incidental text on other descendants.
+        const plan = this.byDspackId.get(n.component);
+        if (plan?.surfacePlan?.textChildProp) instance[buttonProp] = n.text;
       }
       const nextInside = subButtonText[n.component] !== undefined ? n.component : insideSub;
       for (const child of collectChildren(n)) visit(child.node, nextInside);
@@ -245,16 +248,24 @@ class SurfaceEmitter {
     const { textComponent, textProp } = this.profile.surfaceSynthesis;
     const id = this.allocateId(preferredId, path);
     this.components.push({ id, component: textComponent, [textProp]: text });
+    this.warnings.push({
+      code: "surface-synthesized-text",
+      message: `${path}: node text projected as a synthesized ${textComponent} child ('${id}') — the surface format has no text primitive.`,
+    });
     return id;
   }
 
-  private wrapInColumn(childIds: string[], parentId: string): string {
+  private wrapInColumn(childIds: string[], parentId: string, path: string): string {
     const { wrapComponent, wrapChildrenProp } = this.profile.surfaceSynthesis;
-    const id = this.allocateId(`${parentId}_col`, "$");
+    const id = this.allocateId(`${parentId}_col`, path);
     this.components.push({
       id,
       component: wrapComponent,
       [wrapChildrenProp]: childIds,
+    });
+    this.warnings.push({
+      code: "surface-synthesized-wrap",
+      message: `${path}: ${childIds.length} children wrapped in a synthesized ${wrapComponent} ('${id}') — the target slot takes a single child.`,
     });
     return id;
   }
