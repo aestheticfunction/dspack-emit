@@ -15,7 +15,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm install --prefix demo
+      - run: npm ci --prefix demo
       - name: Unit + gate tests (A1–A3, surface emitter, ingestion)
         run: npm test
       - name: Catalog emission (both A2UI versions) + surface emission

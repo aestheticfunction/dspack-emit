@@ -76,8 +76,11 @@ export interface SurfacePlanDirectives {
   subText?: Record<string, string>;
   /**
    * Descendant sub-component id -> A2UI prop receiving the `text` of the first
-   * button found under that sub-component (e.g. AlertDialogTrigger's button
-   * label -> triggerLabel). The button's own props are a documented casualty.
+   * label-bearing component under that sub-component — a component whose own
+   * surface plan projects text as a child label via `textChildProp` (e.g.
+   * AlertDialogTrigger's button label -> triggerLabel). Incidental text on
+   * other descendants is never picked up. The label-bearer's own props are a
+   * documented casualty.
    */
   subButtonText?: Record<string, string>;
   /** Synthesize a declarative A2UI Action into this prop (event name is a deterministic slug). */

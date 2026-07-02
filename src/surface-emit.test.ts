@@ -76,6 +76,18 @@ describe("emitSurface: worked example (ex.delete-account-confirmation)", () => {
     expect(codes).toContain("surface-composition-flattened");
   });
 
+  it("subButtonText takes the label-bearing component's text, never incidental descendant text", () => {
+    const surfaceWithNoise: DspackSurface = structuredClone(workedExample.surface);
+    // Prepend explanatory text inside the trigger, before the button: a
+    // sub-component text node that subText does not claim.
+    const trigger = surfaceWithNoise.root.children![0].children![0];
+    trigger.children!.unshift({ component: "alert-dialog-header", text: "Danger zone" });
+    const dialog = componentsOf(emitSurface(surfaceWithNoise, doc).messages).find(
+      (c) => c.component === "AlertDialog",
+    )!;
+    expect(dialog.triggerLabel).toBe("Delete account"); // the button's label, not "Danger zone"
+  });
+
   it("is deterministic", () => {
     const again = emitSurface(workedExample.surface, doc);
     expect(again.messages).toEqual(messages);
@@ -97,8 +109,12 @@ describe("emitSurface: general projection", () => {
   };
 
   it("wraps multiple card children in a synthesized Column and buttons get Text children", () => {
-    const { messages } = emitSurface(settingsLike, doc);
+    const { messages, warnings } = emitSurface(settingsLike, doc);
     const components = componentsOf(messages);
+    // Both structural syntheses are audited — nothing silent.
+    const codes = warnings.map((w) => w.code);
+    expect(codes).toContain("surface-synthesized-wrap");
+    expect(codes).toContain("surface-synthesized-text");
     const card = components.find((c) => c.component === "Card")!;
     const column = components.find((c) => c.component === "Column")!;
     expect(card.child).toBe(column.id);
