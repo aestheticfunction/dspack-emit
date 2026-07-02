@@ -1047,7 +1047,7 @@
       "component": "button",
       "forbiddenDescendants": ["button", "input"],
       "rationale": "Nested interactive elements create ambiguous click targets and are an accessibility violation: screen readers cannot determine intent and click handling varies across browsers.",
-      "examples": [],
+      "examples": ["ex.delete-account-confirmation"],
       "tags": ["accessibility", "interaction"]
     }
   ],
