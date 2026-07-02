@@ -3,6 +3,7 @@ import { MessageProcessor, type A2uiClientAction } from "@a2ui/web_core/v0_9";
 import { A2uiSurface, MarkdownContext, type ReactComponentImplementation } from "@a2ui/react/v0_9";
 import { renderMarkdown } from "@a2ui/markdown-it";
 import { buildCatalog, registry } from "./ingest";
+import { GenerateView } from "./GenerateView";
 
 // The exact same artifacts the transformer produced — imported, not duplicated.
 import settingsSurface from "../../surface/settings-card.surface.json";
@@ -68,6 +69,7 @@ function a2uiThemeVars(cat: AnyCatalog): React.CSSProperties {
 }
 
 export function App() {
+  const [view, setView] = useState<"surfaces" | "generate">("surfaces");
   const [surfaceKey, setSurfaceKey] = useState<string>("access");
   const [surface, setSurface] = useState<AnySurface | null>(null);
   const [actions, setActions] = useState<A2uiClientAction[]>([]);
@@ -107,22 +109,42 @@ export function App() {
           {Object.entries(SURFACES).map(([key, s]) => (
             <button
               key={key}
-              onClick={() => setSurfaceKey(key)}
+              onClick={() => {
+                setView("surfaces");
+                setSurfaceKey(key);
+              }}
               style={{
                 ...styles.code,
                 cursor: "pointer",
                 border: "1px solid #cbd5e1",
-                background: key === surfaceKey ? "#0f172a" : "#fff",
-                color: key === surfaceKey ? "#fff" : "#0f172a",
+                background: view === "surfaces" && key === surfaceKey ? "#0f172a" : "#fff",
+                color: view === "surfaces" && key === surfaceKey ? "#fff" : "#0f172a",
                 padding: "6px 12px",
               }}
             >
               {s.label}
             </button>
           ))}
+          <button
+            data-testid="view-generate"
+            onClick={() => setView("generate")}
+            style={{
+              ...styles.code,
+              cursor: "pointer",
+              border: "1px solid #cbd5e1",
+              background: view === "generate" ? "#0f172a" : "#fff",
+              color: view === "generate" ? "#fff" : "#0f172a",
+              padding: "6px 12px",
+            }}
+          >
+            Generate (governed)
+          </button>
         </div>
       </header>
 
+      {view === "generate" ? (
+        <GenerateView ingested={ingested} themeVars={a2uiThemeVars(catalog)} />
+      ) : (
       <main style={styles.grid}>
         {/* Rendered surface */}
         <section style={styles.card}>
@@ -230,6 +252,7 @@ export function App() {
           </table>
         </section>
       </main>
+      )}
     </div>
   );
 }
