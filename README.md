@@ -95,6 +95,41 @@ The CLI exits non-zero if any gate fails. Both emitted versions currently pass a
 three. The instance gate is proven non-vacuous in the test suite (it rejects a
 malformed Button).
 
+In the AF governance-pipeline naming these three checks are the **emitter gates
+A1/A2/A3** (schema-compile, catalog-shape, instance); the protocol-neutral
+**surface gates S1/S2/S3** (surface schema, contract vocabulary, governance lint)
+run upstream in [dspack-gen](https://github.com/aestheticfunction/dspack-gen),
+before anything reaches this emitter.
+
+## Surface emission (dspack surface → A2UI)
+
+The input contract is now **dspack v0.3**, whose `examples[]` embed *dspack
+surface* documents — a protocol-neutral component tree in dspack vocabulary
+(schema: `dspack.surface.v0_1.schema.json` in the dspack repo). This repo
+compiles those surfaces to A2UI v0.9 messages:
+
+```bash
+npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 0.9.1 --out out \
+  --emit-surface surface/delete-account.dsurface.json
+```
+
+emits `out/delete-account.surface.json` (createSurface with dspack-token theme +
+updateComponents) and instance-validates it against the freshly generated catalog
+(gate A3). Exit codes: `1` catalog gates failed, `3` strict-coverage, `4` the
+surface could not be emitted (unknown component / structure the profile cannot
+project). The projection is data in the profile (`surfacePlan` directives in
+`src/transform/profiles.ts`); the engine has no component-specific code.
+
+**Honest scope:** compound composition flattens per the documented casualties in
+MAPPING.md (e.g. an `alert-dialog` subtree collapses onto
+`triggerLabel/title/description/cancelLabel/confirmLabel`); A2UI's required
+declarative actions are *synthesized* (deterministic event-name slug) and every
+synthesis/drop is emitted as a warning — nothing is silent.
+
+The package is also consumable as a library (`transform`, `emitSurface`,
+`validateCatalog`, `extractInstances` via the exports map — verified by
+`npm run test:pack`); dspack-gen consumes it as a pinned git dependency.
+
 ## The render demo (headline deliverable)
 
 ```bash

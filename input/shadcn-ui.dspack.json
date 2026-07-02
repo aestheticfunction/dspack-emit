@@ -1,6 +1,6 @@
 {
-  "$schema": "../schema/dspack.v0.2.schema.json",
-  "dspack": "0.2",
+  "$schema": "../schema/dspack.v0.3.schema.json",
+  "dspack": "0.3",
   "name": "shadcn/ui",
   "description": "A collection of reusable components built with Radix UI and Tailwind CSS. Components are copied into your project, not installed as a dependency.",
   "version": "2.0.0",
@@ -1005,6 +1005,101 @@
       "severity": "must-not",
       "components": ["button"],
       "tags": ["accessibility", "semantics", "component-misuse"]
+    }
+  ],
+  "intents": [
+    {
+      "id": "destructive-action",
+      "name": "Destructive action",
+      "description": "The requested UI performs an irreversible or high-consequence operation: deleting records or accounts, revoking access, removing members.",
+      "relatedPatterns": ["destructive-action-confirmation"]
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule.destructive-requires-alertdialog",
+      "type": "component-choice",
+      "severity": "must",
+      "appliesTo": { "intents": ["destructive-action"] },
+      "require": ["alert-dialog"],
+      "forbid": ["dialog"],
+      "rationale": "Dialog can be dismissed by clicking the overlay or pressing Escape, so a user can bypass a destructive confirmation without making a conscious choice. AlertDialog forces an explicit confirm/cancel decision and is announced with greater urgency by screen readers.",
+      "examples": ["ex.delete-account-confirmation"],
+      "tags": ["safety", "accessibility"]
+    },
+    {
+      "id": "rule.alertdialog-requires-cancel",
+      "type": "required-composition",
+      "severity": "must",
+      "component": "alert-dialog",
+      "requiredSubComponents": [
+        { "id": "alert-dialog-cancel", "min": 1 },
+        { "id": "alert-dialog-title", "min": 1 }
+      ],
+      "rationale": "A confirmation without an explicit cancel action and a title naming the consequence funnels the user toward the destructive action; the title is also required for aria-labelledby.",
+      "examples": ["ex.delete-account-confirmation"],
+      "tags": ["safety", "accessibility"]
+    },
+    {
+      "id": "rule.button-no-interactive-descendants",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "button",
+      "forbiddenDescendants": ["button", "input"],
+      "rationale": "Nested interactive elements create ambiguous click targets and are an accessibility violation: screen readers cannot determine intent and click handling varies across browsers.",
+      "examples": [],
+      "tags": ["accessibility", "interaction"]
+    }
+  ],
+  "examples": [
+    {
+      "id": "ex.delete-account-confirmation",
+      "intent": "destructive-action",
+      "name": "Delete account confirmation",
+      "prompt": "a screen to delete my account",
+      "description": "Card with a destructive entry point; AlertDialog confirmation with explicit consequence text, cancel-before-confirm, destructive confirm variant.",
+      "surface": {
+        "dspackSurface": "0.1",
+        "system": "shadcn/ui",
+        "intent": "destructive-action",
+        "root": {
+          "component": "card",
+          "children": [
+            {
+              "component": "alert-dialog",
+              "children": [
+                {
+                  "component": "alert-dialog-trigger",
+                  "children": [
+                    {
+                      "component": "button",
+                      "props": { "variant": "destructive" },
+                      "text": "Delete account"
+                    }
+                  ]
+                },
+                {
+                  "component": "alert-dialog-content",
+                  "children": [
+                    { "component": "alert-dialog-title", "text": "Delete your account?" },
+                    {
+                      "component": "alert-dialog-description",
+                      "text": "This will permanently delete your account and all associated data. This action cannot be undone."
+                    },
+                    {
+                      "component": "alert-dialog-footer",
+                      "children": [
+                        { "component": "alert-dialog-cancel", "text": "Cancel" },
+                        { "component": "alert-dialog-action", "text": "Delete account" }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   ],
   "frameworkBindings": {

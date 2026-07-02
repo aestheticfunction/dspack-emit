@@ -64,6 +64,28 @@ export interface DspackProp {
 }
 
 // ---------------------------------------------------------------------------
+// dspack surface (v0.1) — the protocol-neutral component tree this repo's
+// surface emitter compiles to A2UI messages. Schema:
+// dspack repo, schema/dspack.surface.v0_1.schema.json.
+// ---------------------------------------------------------------------------
+
+export interface DspackSurface {
+  dspackSurface: string;
+  system: string;
+  intent: string;
+  root: SurfaceNode;
+}
+
+export interface SurfaceNode {
+  component: string;
+  id?: string;
+  props?: Record<string, unknown>;
+  text?: string;
+  children?: SurfaceNode[];
+  slots?: Record<string, SurfaceNode[]>;
+}
+
+// ---------------------------------------------------------------------------
 // A2UI catalog — JSON-Schema-shaped output (kept loose: it *is* a JSON Schema)
 // ---------------------------------------------------------------------------
 

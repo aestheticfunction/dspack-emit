@@ -3,20 +3,28 @@
  * dspack-to-a2ui CLI.
  *
  *   tsx src/cli.ts --in <dspack.json> --a2ui-version <0.9.1|1.0> --out <dir> [--surface <surface.json>]
+ *                  [--emit-surface <surface.dsurface.json>]
  *
  * Emits a versioned A2UI catalog + a validation/fidelity report. Exits non-zero
  * if the hard gate (catalog schema validation) fails, so it is CI-friendly.
+ *
+ * With --emit-surface, additionally compiles a dspack surface document (CSR)
+ * into A2UI surface messages (out/<name>.surface.json), instance-validated
+ * against the freshly generated catalog (gate A3). A malformed or
+ * out-of-vocabulary surface exits 4.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import type { A2uiVersion, DspackDoc } from "./types.js";
+import { basename, join, resolve } from "node:path";
+import type { A2uiVersion, DspackDoc, DspackSurface } from "./types.js";
 import { transform } from "./transform/index.js";
+import { emitSurface, EmitSurfaceError } from "./targets/a2ui/surface.js";
 
 interface Args {
   in: string;
   version: A2uiVersion;
   out: string;
   surface: string;
+  emitSurface?: string;
   strictCoverage: boolean;
 }
 
@@ -52,6 +60,7 @@ function parseArgs(argv: string[]): Args {
     version: version as A2uiVersion,
     out: m.get("out") ?? "out",
     surface: m.get("surface") ?? "surface/settings-card.surface.json",
+    emitSurface: m.get("emit-surface"),
     strictCoverage: m.get("strict-coverage") === "true",
   };
 }
@@ -89,6 +98,34 @@ function main(): void {
 
   if (!validation.pass) process.exit(1);
   if (args.strictCoverage && unclassified.length) process.exit(3);
+
+  if (args.emitSurface) {
+    const csr = JSON.parse(readFileSync(resolve(args.emitSurface), "utf8")) as DspackSurface;
+    let emitted;
+    try {
+      emitted = emitSurface(csr, doc);
+    } catch (e) {
+      if (e instanceof EmitSurfaceError) {
+        console.error(`${tag} EMIT-SURFACE FAILED: ${e.message}`);
+        process.exit(4);
+      }
+      throw e;
+    }
+    const name = basename(args.emitSurface).replace(/\.dsurface\.json$|\.json$/, "");
+    const outPath = join(base, `${name}.surface.json`);
+    writeFileSync(outPath, JSON.stringify({ messages: emitted.messages }, null, 2) + "\n");
+    for (const w of emitted.warnings) console.log(`${tag}   note  ${w.code}: ${w.message}`);
+    // Gate A3 over the emitted surface: its instances must validate against the
+    // catalog generated in this same run.
+    const check = transform(doc, args.version, { messages: emitted.messages });
+    const instanceGate = check.validation.gates.find((g) => g.name === "instance");
+    console.log(`${tag} emitted surface -> ${outPath}`);
+    console.log(`${tag}   ${instanceGate?.pass ? "PASS" : "FAIL"}  instance (emitted surface vs generated catalog)`);
+    if (!instanceGate?.pass) {
+      for (const err of instanceGate?.errors ?? []) console.error(`${tag}     ${err}`);
+      process.exit(4);
+    }
+  }
 }
 
 main();

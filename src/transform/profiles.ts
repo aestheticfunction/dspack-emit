@@ -32,6 +32,18 @@ export interface Profile {
   casualtyComponents: CasualtyComponent[];
   /** dspack component ids deliberately left out (not mapped, not a casualty). */
   intentionallyOmitted?: string[];
+  /**
+   * Which synthesized A2UI primitives the surface emitter uses when a dspack
+   * surface needs structure the source vocabulary does not express: text
+   * leaves become `textComponent` instances; multiple children in a
+   * single-child slot are wrapped in `wrapComponent`.
+   */
+  surfaceSynthesis: {
+    textComponent: string;
+    textProp: string;
+    wrapComponent: string;
+    wrapChildrenProp: string;
+  };
 }
 
 export interface ComponentPlan {
@@ -48,6 +60,38 @@ export interface ComponentPlan {
   propMap?: Record<string, PropPlan>;
   /** A2UI required property names (the `component` const is added automatically). */
   required: string[];
+  /** How the surface emitter projects a dspack-surface node onto this component. */
+  surfacePlan?: SurfacePlanDirectives;
+}
+
+/**
+ * Data-only directives for projecting a dspack-surface (CSR) node onto an
+ * emitted A2UI component instance. Compound composition that A2UI cannot
+ * represent is flattened here, per the documented casualty mapping in
+ * MAPPING.md — the emitter consumes the node's whole subtree when sub-content
+ * directives (`subText`/`subButtonText`) are present.
+ */
+export interface SurfacePlanDirectives {
+  /** Descendant sub-component id -> A2UI prop receiving that node's `text`. */
+  subText?: Record<string, string>;
+  /**
+   * Descendant sub-component id -> A2UI prop receiving the `text` of the first
+   * button found under that sub-component (e.g. AlertDialogTrigger's button
+   * label -> triggerLabel). The button's own props are a documented casualty.
+   */
+  subButtonText?: Record<string, string>;
+  /** Synthesize a declarative A2UI Action into this prop (event name is a deterministic slug). */
+  actionProp?: string;
+  /** Node `text` becomes a synthesized text-primitive child referenced by this ComponentId prop. */
+  textChildProp?: string;
+  /** Node `text` becomes this DynamicString prop directly. */
+  textProp?: string;
+  /** Children emit as components; exactly one child id in this prop (>1 children are wrapped). */
+  childProp?: string;
+  /** Children emit as components; their ids form a ChildList in this prop. */
+  childrenProp?: string;
+  /** CSR props copied verbatim into same-named structural slots (e.g. Table columns/rows). */
+  structuralPassthrough?: string[];
 }
 
 export interface StructuralSlot {
@@ -86,6 +130,12 @@ export const shadcnProfile: Profile = {
   catalogIdBase: "https://rdombrowski.dev/catalogs/shadcn-ui",
   instructions: "For layout, use the Column component to organize other components.",
   primaryColorToken: { category: "color", name: "primary" },
+  surfaceSynthesis: {
+    textComponent: "Text",
+    textProp: "text",
+    wrapComponent: "Column",
+    wrapChildrenProp: "children",
+  },
 
   components: [
     {
@@ -129,6 +179,7 @@ export const shadcnProfile: Profile = {
         },
       },
       required: ["child", "action"],
+      surfacePlan: { textChildProp: "child", actionProp: "action" },
     },
 
     {
@@ -146,6 +197,7 @@ export const shadcnProfile: Profile = {
         },
       },
       required: ["child"],
+      surfacePlan: { childProp: "child" },
     },
 
     {
@@ -183,6 +235,7 @@ export const shadcnProfile: Profile = {
         },
       },
       required: ["label"],
+      surfacePlan: { textProp: "label" },
     },
 
     {
@@ -207,6 +260,7 @@ export const shadcnProfile: Profile = {
         },
       },
       required: ["label"],
+      surfacePlan: { textProp: "label" },
     },
 
     {
@@ -234,6 +288,7 @@ export const shadcnProfile: Profile = {
         },
       },
       required: ["columns", "rows"],
+      surfacePlan: { structuralPassthrough: ["caption", "columns", "rows"] },
     },
 
     {
@@ -275,6 +330,16 @@ export const shadcnProfile: Profile = {
         },
       },
       required: ["triggerLabel", "title", "action"],
+      surfacePlan: {
+        subText: {
+          "alert-dialog-title": "title",
+          "alert-dialog-description": "description",
+          "alert-dialog-cancel": "cancelLabel",
+          "alert-dialog-action": "confirmLabel",
+        },
+        subButtonText: { "alert-dialog-trigger": "triggerLabel" },
+        actionProp: "action",
+      },
     },
   ],
 

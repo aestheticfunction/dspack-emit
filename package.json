@@ -1,14 +1,29 @@
 {
-  "name": "dspack-to-a2ui",
-  "version": "0.1.0",
+  "name": "@aestheticfunction/dspack-to-a2ui",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Proof-of-concept: compile a dspack design-system contract into a valid A2UI catalog and render it through the React A2UI renderer.",
+  "description": "dspack → A2UI emitter: compile a dspack design-system contract into a valid A2UI catalog, and dspack surfaces into A2UI surface messages, validated by the A1–A3 gates.",
   "license": "Apache-2.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "transform": "tsx src/cli.ts",
+    "build": "tsc -p tsconfig.json && mkdir -p dist/validate/meta && cp src/validate/meta/*.json dist/validate/meta/",
+    "prepare": "npm run build",
     "build:catalogs": "tsx src/cli.ts --in input/shadcn-ui.dspack.json --a2ui-version 0.9.1 --out out && tsx src/cli.ts --in input/shadcn-ui.dspack.json --a2ui-version 1.0 --out out",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:pack": "bash scripts/pack-test.sh"
   },
   "dependencies": {
     "ajv": "^8.17.1",
