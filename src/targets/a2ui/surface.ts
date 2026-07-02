@@ -133,7 +133,9 @@ class SurfaceEmitter {
       );
     }
 
-    const id = this.allocateId(node.id ?? plan.a2ui.toLowerCase(), path);
+    // A2UI renderers begin at the component with id "root" (see the
+    // hand-authored surfaces); the surface root always emits under that id.
+    const id = path === "$.root" ? this.allocateId("root", path) : this.allocateId(node.id ?? plan.a2ui.toLowerCase(), path);
     // Reserve the slot so parent components precede children in the flat list.
     const index = this.components.length;
     this.components.push({});

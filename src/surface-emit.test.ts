@@ -50,11 +50,12 @@ describe("emitSurface: worked example (ex.delete-account-confirmation)", () => {
     expect(dialog.action).toEqual({ event: { name: "delete_account", context: {} } });
   });
 
-  it("projects Card onto its single-child slot", () => {
+  it("projects Card onto its single-child slot; the root emits under id 'root' (A2UI render entry)", () => {
     const card = components.find((c) => c.component === "Card")!;
     const dialog = components.find((c) => c.component === "AlertDialog")!;
     expect(card.child).toBe(dialog.id);
     expect(components[0]).toBe(card); // root first (pre-order)
+    expect(card.id).toBe("root");
   });
 
   it("passes gates A1–A3 against both generated catalogs", () => {
