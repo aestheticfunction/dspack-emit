@@ -7,13 +7,11 @@ governed dspack surfaces into protocol targets — an
 **[json-render](https://github.com/vercel-labs/json-render) catalog/registry
 modules + specs**.
 
-> **Naming note (temporary split):** this repo was renamed from
-> `dspack-to-a2ui` to `dspack-emit` when the second target landed (ADR-D2;
-> the old GitHub URL redirects). The npm package is still published as
-> **`@aestheticfunction/dspack-to-a2ui`** (`0.2.0`); at the next publish it
-> becomes `@aestheticfunction/dspack-emit` and the old package will be
-> deprecated with a pointer. Until then: repo name `dspack-emit`, package
-> name `@aestheticfunction/dspack-to-a2ui`.
+> **Naming note:** this repo was renamed from `dspack-to-a2ui` to `dspack-emit`
+> when the second target landed (ADR-D2; the old GitHub URL redirects). The
+> npm package is **`@aestheticfunction/dspack-emit`** from `0.3.0`; the last
+> release under the old name is `@aestheticfunction/dspack-to-a2ui@0.2.0`,
+> deprecated with a pointer here.
 
 The project began as a proof-of-concept that compiles a dspack contract into a
 valid A2UI catalog and renders a sample surface through the published React
@@ -144,7 +142,7 @@ synthesis/drop is emitted as a warning — nothing is silent.
 The package is also consumable as a library (`transform`, `emitSurface`,
 `validateCatalog`, `extractInstances` via the exports map — verified by
 `npm run test:pack`); dspack-gen consumes it from npm
-(`@aestheticfunction/dspack-to-a2ui`).
+(`@aestheticfunction/dspack-emit`).
 
 ## Second target: json-render (protocol neutrality, tested)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx tsx
 /**
- * dspack-to-a2ui CLI.
+ * dspack-emit CLI.
  *
  *   tsx src/cli.ts --in <dspack.json> --a2ui-version <0.9.1|1.0> --out <dir> [--surface <surface.json>]
  *                  [--emit-surface <surface.dsurface.json>]
