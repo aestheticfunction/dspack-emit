@@ -1,8 +1,23 @@
-# dspack → A2UI
+# dspack-emit
 
-A proof-of-concept that compiles a **dspack** design-system contract into a valid
-**[A2UI](https://github.com/a2ui-project/a2ui) catalog** and renders a sample surface
-through the published React A2UI renderer.
+dspack's multi-target emitter: compiles a **dspack** design-system contract and
+governed dspack surfaces into protocol targets — an
+**[A2UI](https://github.com/a2ui-project/a2ui) catalog + surface messages**
+(rendered through the published React A2UI renderer) and
+**[json-render](https://github.com/vercel-labs/json-render) catalog/registry
+modules + specs**.
+
+> **Naming note (temporary split):** this repo was renamed from
+> `dspack-to-a2ui` to `dspack-emit` when the second target landed (ADR-D2;
+> the old GitHub URL redirects). The npm package is still published as
+> **`@aestheticfunction/dspack-to-a2ui`** (`0.2.0`); at the next publish it
+> becomes `@aestheticfunction/dspack-emit` and the old package will be
+> deprecated with a pointer. Until then: repo name `dspack-emit`, package
+> name `@aestheticfunction/dspack-to-a2ui`.
+
+The project began as a proof-of-concept that compiles a dspack contract into a
+valid A2UI catalog and renders a sample surface through the published React
+A2UI renderer.
 
 > **The question this answers:** *Can dspack function as a portable interchange contract
 > for agent UI systems by compiling into an A2UI catalog with acceptable fidelity and
