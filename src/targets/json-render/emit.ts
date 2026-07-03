@@ -113,10 +113,21 @@ class SpecEmitter {
     const props: Record<string, unknown> = {};
     const knownProps = new Map(component.props.map((p) => [p.name, p]));
     for (const [name, value] of Object.entries(node.props ?? {})) {
-      if (!knownProps.has(name)) {
+      const known = knownProps.get(name);
+      if (!known) {
         this.warnings.push({
           code: "jr-prop-dropped",
           message: `${path}: prop '${name}' on '${node.component}' is not in the declarative catalog (handler or unknown prop); dropped.`,
+        });
+        continue;
+      }
+      if (known.synthesized) {
+        // Synthesized catalog props (the universal `text`) are populated only
+        // by this emitter's own projection — the CSR `text` leaf is their
+        // single source; accepting them via `props` would bypass that rule.
+        this.warnings.push({
+          code: "jr-prop-dropped",
+          message: `${path}: prop '${name}' on '${node.component}' is reserved for the CSR '${name}' leaf projection (set node.${name}, not props.${name}); dropped.`,
         });
         continue;
       }

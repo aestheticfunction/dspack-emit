@@ -117,6 +117,18 @@ describe("emitJsonRenderSpec: honesty of the recorded projections", () => {
     expect(() => emitJsonRenderSpec(surface, doc)).toThrow(EmitJsonRenderError);
   });
 
+  it("drops props.text with a warning — the CSR `text` leaf is the universal text prop's only source", () => {
+    const surface = structuredClone(workedExample.surface);
+    const button = surface.root.children![0].children![0].children![0]; // the trigger button
+    button.props = { ...button.props, text: "smuggled" };
+    const { spec, warnings } = emitJsonRenderSpec(surface, doc);
+    const emitted = Object.values(spec.elements).find((e) => e.type === "Button")!;
+    expect(emitted.props.text).toBe("Delete account"); // node.text, not props.text
+    expect(warnings.some((w) => w.code === "jr-prop-dropped" && w.message.includes("reserved for the CSR"))).toBe(
+      true,
+    );
+  });
+
   it("drops handler props with a warning (declarative-catalog boundary)", () => {
     const surface = structuredClone(workedExample.surface);
     surface.root.children![0].props = { onOpenChange: "noop" };

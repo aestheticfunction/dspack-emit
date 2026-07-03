@@ -18,7 +18,7 @@ export interface JsonRenderProfile {
    */
   nameOverrides?: Record<string, string>;
   /** dspack component ids deliberately not cataloged. Must stay documented, never silent. */
-  intentionallyOmitted: string[];
+  intentionallyOmitted?: string[];
 }
 
 export const shadcnJsonRenderProfile: JsonRenderProfile = {

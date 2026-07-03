@@ -41,6 +41,13 @@ export interface CatalogProp {
   /** Enum vocabulary in contract order (enum kind only). */
   values?: string[];
   description?: string;
+  /**
+   * True for props this target adds beyond the contract (the universal
+   * `text` prop). Synthesized props are populated only by the emitter's own
+   * projection (the CSR `text` leaf), never via a node's `props` — the
+   * emitter warns and drops attempts to set them there.
+   */
+  synthesized?: boolean;
 }
 
 export interface ExcludedProp {
@@ -64,6 +71,7 @@ const TEXT_PROP: CatalogProp = {
   name: "text",
   kind: "string",
   description: "Text content (projected from the dspack surface node's `text` field).",
+  synthesized: true,
 };
 
 export function pascalName(dspackId: string, profile: JsonRenderProfile): string {
@@ -101,7 +109,7 @@ export function buildCatalogModel(doc: DspackDoc, profile: JsonRenderProfile): C
   };
 
   for (const [id, component] of Object.entries(doc.components ?? {})) {
-    if (profile.intentionallyOmitted.includes(id)) continue;
+    if (profile.intentionallyOmitted?.includes(id)) continue;
     add(id, component.description, component.props);
     for (const sub of subComponentsOf(component)) {
       add(sub.id, sub.description ?? `${component.name} sub-component.`, sub.props);

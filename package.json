@@ -2,7 +2,7 @@
   "name": "@aestheticfunction/dspack-to-a2ui",
   "version": "0.2.0",
   "type": "module",
-  "description": "dspack → A2UI emitter: compile a dspack design-system contract into a valid A2UI catalog, and dspack surfaces into A2UI surface messages, validated by the A1–A3 gates.",
+  "description": "dspack emitters: compile a dspack design-system contract and dspack surfaces into protocol targets — an A2UI catalog + surface messages (gates A1-A3) and json-render catalog/registry modules + specs (gates J1-J3).",
   "license": "Apache-2.0",
   "exports": {
     ".": {
