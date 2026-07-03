@@ -1,5 +1,5 @@
 /**
- * Public library surface of dspack-to-a2ui (the A2UI emitter target).
+ * Public library surface of dspack-emit (the multi-target dspack emitter).
  *
  * Consumers (dspack-gen) depend on exactly this module; everything not
  * re-exported here is internal. The CLI (src/cli.ts) is a thin wrapper over

@@ -25,7 +25,7 @@ import {
   extractInstances,
   shadcnProfile,
   EmitSurfaceError,
-} from "@aestheticfunction/dspack-to-a2ui";
+} from "@aestheticfunction/dspack-emit";
 
 const root = process.env.REPO_ROOT;
 const doc = JSON.parse(readFileSync(`${root}/input/shadcn-ui.dspack.json`, "utf8"));

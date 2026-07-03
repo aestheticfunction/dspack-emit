@@ -1,5 +1,5 @@
 {
-  "name": "dspack-to-a2ui-json-render-gate",
+  "name": "dspack-emit-json-render-gate",
   "version": "0.0.0",
   "private": true,
   "type": "module",
