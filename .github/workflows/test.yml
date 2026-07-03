@@ -24,5 +24,7 @@ jobs:
           npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 1.0 --out out
       - name: json-render target gates (J1 tsc, J2 validateSpec, J3 catalog.validate)
         run: npm run test:json-render
+      - name: Contract-copy drift check (dspack-gen#7)
+        run: npm run check:sync
       - name: Pack-and-install boundary test
         run: npm run test:pack
