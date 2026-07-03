@@ -25,6 +25,7 @@
 import type { DspackDoc, DspackSurface, Json, SurfaceNode, Warning } from "../../types.js";
 import { shadcnProfile, type ComponentPlan, type Profile } from "../../transform/profiles.js";
 import { toHex6 } from "../../transform/color.js";
+import { collectChildren } from "../csr.js";
 
 export class EmitSurfaceError extends Error {
   constructor(
@@ -283,18 +284,4 @@ class SurfaceEmitter {
     this.usedIds.add(id);
     return id;
   }
-}
-
-interface ChildRef {
-  node: SurfaceNode;
-  suffix: string;
-}
-
-/** Ordered children: `children` first, then slots in sorted-key order (deterministic). */
-function collectChildren(node: SurfaceNode): ChildRef[] {
-  const refs: ChildRef[] = (node.children ?? []).map((n) => ({ node: n, suffix: ".children" }));
-  for (const key of Object.keys(node.slots ?? {}).sort()) {
-    for (const n of node.slots![key]) refs.push({ node: n, suffix: `.slots.${key}` });
-  }
-  return refs;
 }
