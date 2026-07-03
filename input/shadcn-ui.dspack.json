@@ -1,9 +1,9 @@
 {
-  "$schema": "../schema/dspack.v0.3.schema.json",
-  "dspack": "0.3",
+  "$schema": "../schema/dspack.v0.4.schema.json",
+  "dspack": "0.4",
   "name": "shadcn/ui",
   "description": "A collection of reusable components built with Radix UI and Tailwind CSS. Components are copied into your project, not installed as a dependency.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "metadata": {
     "source": "https://ui.shadcn.com",
     "license": "MIT"
@@ -311,7 +311,8 @@
       ],
       "tokens": ["primary", "primary-foreground", "secondary", "secondary-foreground", "destructive", "destructive-foreground", "border", "ring", "radius"],
       "relatedComponents": ["toggle"],
-      "tags": ["interactive", "form", "action"]
+      "tags": ["interactive", "form", "action"],
+      "categories": ["interactive"]
     },
     "alert-dialog": {
       "name": "Alert Dialog",
@@ -360,7 +361,8 @@
             "description": "The element that opens the alert dialog.",
             "required": true,
             "slot": "trigger",
-            "acceptsChildren": "components"
+            "acceptsChildren": "components",
+            "categories": ["interactive"]
           },
           {
             "id": "alert-dialog-content",
@@ -403,14 +405,16 @@
             "name": "AlertDialogAction",
             "description": "The button that confirms the destructive action.",
             "required": true,
-            "acceptsChildren": "text"
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
           },
           {
             "id": "alert-dialog-cancel",
             "name": "AlertDialogCancel",
             "description": "The button that cancels and closes the dialog.",
             "required": true,
-            "acceptsChildren": "text"
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
           }
         ],
         "notes": "AlertDialogContent must contain AlertDialogTitle and AlertDialogDescription for accessibility. AlertDialogAction and AlertDialogCancel must appear in AlertDialogFooter. Place cancel before confirm in reading order."
@@ -434,7 +438,8 @@
       ],
       "tokens": ["background", "foreground", "primary", "primary-foreground", "destructive", "destructive-foreground", "border", "radius"],
       "relatedComponents": ["dialog", "button"],
-      "tags": ["modal", "confirmation", "destructive", "accessibility"]
+      "tags": ["modal", "confirmation", "destructive", "accessibility"],
+      "categories": ["overlay"]
     },
     "dialog": {
       "name": "Dialog",
@@ -483,7 +488,8 @@
             "name": "DialogTrigger",
             "description": "The element that opens the dialog.",
             "slot": "trigger",
-            "acceptsChildren": "components"
+            "acceptsChildren": "components",
+            "categories": ["interactive"]
           },
           {
             "id": "dialog-content",
@@ -524,7 +530,8 @@
             "id": "dialog-close",
             "name": "DialogClose",
             "description": "A button that closes the dialog.",
-            "acceptsChildren": "text"
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
           }
         ]
       },
@@ -542,7 +549,8 @@
       ],
       "tokens": ["background", "foreground", "border", "radius"],
       "relatedComponents": ["alert-dialog"],
-      "tags": ["modal", "overlay", "form"]
+      "tags": ["modal", "overlay", "form"],
+      "categories": ["overlay"]
     },
     "card": {
       "name": "Card",
@@ -659,7 +667,8 @@
       ],
       "tokens": ["background", "foreground", "border", "ring", "radius-sm"],
       "relatedComponents": [],
-      "tags": ["form", "input", "text"]
+      "tags": ["form", "input", "text"],
+      "categories": ["interactive"]
     },
     "badge": {
       "name": "Badge",
@@ -733,7 +742,8 @@
             "description": "The element that opens the dropdown menu.",
             "required": true,
             "slot": "trigger",
-            "acceptsChildren": "components"
+            "acceptsChildren": "components",
+            "categories": ["interactive"]
           },
           {
             "id": "dropdown-menu-content",
@@ -747,13 +757,15 @@
             "id": "dropdown-menu-item",
             "name": "DropdownMenuItem",
             "description": "A single actionable item in the menu.",
-            "acceptsChildren": "text"
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
           },
           {
             "id": "dropdown-menu-checkbox-item",
             "name": "DropdownMenuCheckboxItem",
             "description": "A menu item that can be toggled on/off.",
-            "acceptsChildren": "text"
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
           },
           {
             "id": "dropdown-menu-radio-group",
@@ -765,7 +777,8 @@
             "id": "dropdown-menu-radio-item",
             "name": "DropdownMenuRadioItem",
             "description": "A radio-style menu item for single selection within a group.",
-            "acceptsChildren": "text"
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
           },
           {
             "id": "dropdown-menu-label",
@@ -795,7 +808,8 @@
             "id": "dropdown-menu-sub-trigger",
             "name": "DropdownMenuSubTrigger",
             "description": "The item that opens a sub-menu on hover or keyboard navigation.",
-            "acceptsChildren": "text"
+            "acceptsChildren": "text",
+            "categories": ["interactive"]
           },
           {
             "id": "dropdown-menu-sub-content",
@@ -807,7 +821,8 @@
       },
       "tokens": ["background", "foreground", "accent", "muted", "muted-foreground", "border", "radius"],
       "relatedComponents": ["button"],
-      "tags": ["interactive", "menu", "overlay"]
+      "tags": ["interactive", "menu", "overlay"],
+      "categories": ["interactive", "overlay"]
     },
     "table": {
       "name": "Table",
@@ -931,6 +946,16 @@
       "tags": ["data", "table", "tabular", "display"]
     }
   },
+  "categories": {
+    "interactive": {
+      "name": "Interactive",
+      "description": "Receives pointer or keyboard activation: buttons, inputs, menu items, and trigger/action/cancel sub-components. Category-based composition rules select by this instead of enumerating ids."
+    },
+    "overlay": {
+      "name": "Overlay",
+      "description": "Renders content in a layer above the page with its own focus and dismiss semantics: dialogs, alert dialogs, dropdown menus."
+    }
+  },
   "patterns": [
     {
       "id": "destructive-action-confirmation",
@@ -1048,6 +1073,26 @@
       "forbiddenDescendants": ["button", "input"],
       "rationale": "Nested interactive elements create ambiguous click targets and are an accessibility violation: screen readers cannot determine intent and click handling varies across browsers.",
       "examples": ["ex.delete-account-confirmation"],
+      "tags": ["accessibility", "interaction"]
+    },
+    {
+      "id": "rule.trigger-carries-label",
+      "type": "required-props",
+      "severity": "must",
+      "component": "button",
+      "within": "alert-dialog-trigger",
+      "requiredText": true,
+      "rationale": "The trigger button must present its label as its own text. Assistive technology reads the control's accessible name from the element itself, and protocol projections lift a trigger label from the label-bearing component's direct text — a label nested in a child (e.g. a badge) or absent entirely produces a control with no accessible name and an instance downstream emitters must refuse.",
+      "examples": ["ex.delete-account-confirmation"],
+      "tags": ["accessibility", "projection"]
+    },
+    {
+      "id": "rule.alertdialog-no-nested-overlays",
+      "type": "forbidden-composition",
+      "severity": "must",
+      "component": "alert-dialog",
+      "forbiddenCategories": ["overlay"],
+      "rationale": "An alert dialog is a single focused interruption. Stacking another overlay (dialog, dropdown menu, another alert dialog) inside it breaks focus containment and dismiss semantics and buries the confirmation decision under a second layer.",
       "tags": ["accessibility", "interaction"]
     }
   ],
