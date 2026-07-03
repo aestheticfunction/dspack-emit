@@ -128,7 +128,47 @@ synthesis/drop is emitted as a warning — nothing is silent.
 
 The package is also consumable as a library (`transform`, `emitSurface`,
 `validateCatalog`, `extractInstances` via the exports map — verified by
-`npm run test:pack`); dspack-gen consumes it as a pinned git dependency.
+`npm run test:pack`); dspack-gen consumes it from npm
+(`@aestheticfunction/dspack-to-a2ui`).
+
+## Second target: json-render (protocol neutrality, tested)
+
+The same governed surfaces compile to a second protocol,
+[json-render](https://github.com/vercel-labs/json-render) (Vercel Labs):
+
+```bash
+npm run transform -- --target json-render --in input/shadcn-ui.dspack.json --out out/json-render \
+  --emit-surface surface/delete-account.dsurface.json
+```
+
+generates `catalog.ts` (a `defineCatalog` module whose Zod prop schemas are
+compiled from the contract's vocabulary — enums verbatim) and `registry.tsx`
+(typed stub renderers, so the catalog's inferred prop typing is *compiled*,
+not assumed), and emits the CSR as a json-render spec (`root` + flat
+`elements` map). Unlike the a2ui projection, nothing flattens: every dspack
+component **and sub-component** is a catalog component 1:1, so compound
+composition survives as real nesting — the json-render profile
+(`src/targets/json-render/profile.ts`) is near-empty, and that emptiness is
+the point. The recorded projections that do exist: `text` leaves become a
+universal `text` prop; slot *names* flatten into child order; function-typed
+handler props are excluded from the declarative catalog — each one warned,
+nothing silent.
+
+Target gates, in the json-render idiom (`npm run test:json-render`, CI-run):
+**J1** the generated modules compile (`tsc --noEmit`); **J2** spec structural
+integrity (json-render's `validateSpec`); **J3** instance acceptance
+(`catalog.validate()` — the generated Zod schemas parse the emitted tree).
+J1–J3 run in `gates/json-render/`, a separate pinned package: json-render
+requires zod v4 while this repo's root tree is pinned to zod v3 by
+`@a2ui/web_core`'s peer range, so the two frameworks cannot share a
+dependency tree. json-render is pre-1.0; its version is pinned there and
+churn stays contained to `src/targets/json-render/` + that gate package.
+
+**What the thesis test claims, precisely** (`src/json-render-emit.test.ts`):
+governance runs pre-emission on the CSR, so governed/violating status is
+identical across emitters *by construction*; the test demonstrates that every
+governed CSR in this repo is **accepted by both emitters**. It does **not**
+claim the two protocols are equally expressive.
 
 ## The render demo (headline deliverable)
 

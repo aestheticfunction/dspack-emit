@@ -4,22 +4,33 @@
  *
  *   tsx src/cli.ts --in <dspack.json> --a2ui-version <0.9.1|1.0> --out <dir> [--surface <surface.json>]
  *                  [--emit-surface <surface.dsurface.json>]
+ *   tsx src/cli.ts --target json-render --in <dspack.json> --out <dir>
+ *                  [--emit-surface <surface.dsurface.json>]
  *
- * Emits a versioned A2UI catalog + a validation/fidelity report. Exits non-zero
- * if the hard gate (catalog schema validation) fails, so it is CI-friendly.
+ * Default target (a2ui): emits a versioned A2UI catalog + a
+ * validation/fidelity report. Exits non-zero if the hard gate (catalog schema
+ * validation) fails, so it is CI-friendly. With --emit-surface, additionally
+ * compiles a dspack surface document (CSR) into A2UI surface messages
+ * (out/<name>.surface.json), instance-validated against the freshly generated
+ * catalog (gate A3). A malformed or out-of-vocabulary surface exits 4.
  *
- * With --emit-surface, additionally compiles a dspack surface document (CSR)
- * into A2UI surface messages (out/<name>.surface.json), instance-validated
- * against the freshly generated catalog (gate A3). A malformed or
- * out-of-vocabulary surface exits 4.
+ * json-render target: generates catalog.ts + registry.tsx (Zod component
+ * defs + typed stub registry) from the contract. With --emit-surface,
+ * additionally compiles the CSR into a json-render spec
+ * (out/<name>.spec.json), validated against the catalog model — failure
+ * exits 4, mirroring the a2ui path. The framework-level gates J1–J3 (tsc +
+ * real Zod parse) run in gates/json-render, not here.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { A2uiVersion, DspackDoc, DspackSurface } from "./types.js";
 import { transform } from "./transform/index.js";
 import { emitSurface, EmitSurfaceError } from "./targets/a2ui/surface.js";
+import { generateJsonRenderModules } from "./targets/json-render/codegen.js";
+import { emitJsonRenderSpec, EmitJsonRenderError, validateSpecAgainstModel } from "./targets/json-render/emit.js";
 
 interface Args {
+  target: "a2ui" | "json-render";
   in: string;
   version: A2uiVersion;
   out: string;
@@ -49,15 +60,23 @@ function parseArgs(argv: string[]): Args {
       m.set(tok.slice(2), value);
     }
   }
+  const target = m.get("target") ?? "a2ui";
+  if (target !== "a2ui" && target !== "json-render") {
+    fail("--target must be 'a2ui' or 'json-render'");
+  }
   const version = m.get("a2ui-version");
-  if (version !== "0.9.1" && version !== "1.0") {
+  if (target === "a2ui" && version !== "0.9.1" && version !== "1.0") {
     fail("--a2ui-version must be '0.9.1' or '1.0'");
+  }
+  if (target === "json-render" && version !== undefined) {
+    fail("--a2ui-version does not apply to --target json-render");
   }
   const input = m.get("in");
   if (!input) fail("--in <dspack.json> is required");
   return {
+    target,
     in: input!,
-    version: version as A2uiVersion,
+    version: (version ?? "0.9.1") as A2uiVersion,
     out: m.get("out") ?? "out",
     surface: m.get("surface") ?? "surface/settings-card.surface.json",
     emitSurface: m.get("emit-surface"),
@@ -70,11 +89,58 @@ function fail(msg: string): never {
   process.exit(2);
 }
 
+function jsonRenderMain(args: Args, doc: DspackDoc): void {
+  const tag = "[json-render]";
+  const { catalogTs, registryTsx, model } = generateJsonRenderModules(doc);
+  mkdirSync(resolve(args.out), { recursive: true });
+  const base = resolve(args.out);
+  writeFileSync(join(base, "catalog.ts"), catalogTs);
+  writeFileSync(join(base, "registry.tsx"), registryTsx);
+  console.log(`${tag} catalog  -> ${join(args.out, "catalog.ts")} (${model.components.length} components)`);
+  console.log(`${tag} registry -> ${join(args.out, "registry.tsx")} (stub implementations)`);
+  for (const component of model.components) {
+    for (const excluded of component.excludedProps) {
+      console.log(`${tag}   note  prop-excluded: ${component.dspackId}.${excluded.name} — ${excluded.reason}`);
+    }
+  }
+
+  if (args.emitSurface) {
+    const csr = JSON.parse(readFileSync(resolve(args.emitSurface), "utf8")) as DspackSurface;
+    let emitted;
+    try {
+      emitted = emitJsonRenderSpec(csr, doc);
+    } catch (e) {
+      if (e instanceof EmitJsonRenderError) {
+        console.error(`${tag} EMIT-SPEC FAILED: ${e.message}`);
+        process.exit(4);
+      }
+      throw e;
+    }
+    const name = basename(args.emitSurface).replace(/\.dsurface\.json$|\.json$/, "");
+    const outPath = join(base, `${name}.spec.json`);
+    writeFileSync(outPath, JSON.stringify(emitted.spec, null, 2) + "\n");
+    for (const w of emitted.warnings) console.log(`${tag}   note  ${w.code}: ${w.message}`);
+    // Offline mirror of gates J2/J3 over the emitted spec; the framework-level
+    // gates (tsc + real Zod parse) run in gates/json-render.
+    const findings = validateSpecAgainstModel(emitted.spec, model);
+    console.log(`${tag} emitted spec -> ${outPath}`);
+    console.log(`${tag}   ${findings.length === 0 ? "PASS" : "FAIL"}  model-vocabulary (emitted spec vs generated catalog model)`);
+    if (findings.length > 0) {
+      for (const f of findings) console.error(`${tag}     ${f.path}: ${f.message}`);
+      process.exit(4);
+    }
+  }
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
   const seg = args.version === "0.9.1" ? "v0_9_1" : "v1_0";
 
   const doc = JSON.parse(readFileSync(resolve(args.in), "utf8")) as DspackDoc;
+  if (args.target === "json-render") {
+    jsonRenderMain(args, doc);
+    return;
+  }
   const surface = JSON.parse(readFileSync(resolve(args.surface), "utf8"));
 
   const { catalog, mapping, validation, report } = transform(doc, args.version, surface);

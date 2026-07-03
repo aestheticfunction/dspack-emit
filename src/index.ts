@@ -15,6 +15,19 @@ export {
   type EmitSurfaceResult,
   type EmitSurfaceOptions,
 } from "./targets/a2ui/surface.js";
+export {
+  emitJsonRenderSpec,
+  validateSpecAgainstModel,
+  EmitJsonRenderError,
+  type EmitJsonRenderResult,
+  type EmitJsonRenderOptions,
+  type JsonRenderSpec,
+  type JsonRenderElement,
+  type SpecFinding,
+} from "./targets/json-render/emit.js";
+export { generateJsonRenderModules, type JsonRenderModules } from "./targets/json-render/codegen.js";
+export { buildCatalogModel, type CatalogModel, type CatalogComponent, type CatalogProp } from "./targets/json-render/model.js";
+export { shadcnJsonRenderProfile, type JsonRenderProfile } from "./targets/json-render/profile.js";
 export type {
   A2uiCatalog,
   A2uiVersion,

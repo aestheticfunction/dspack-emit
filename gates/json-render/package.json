@@ -1,0 +1,22 @@
+{
+  "name": "dspack-to-a2ui-json-render-gate",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-level gates J1-J3 for the json-render target. Isolated package: json-render requires zod v4, while the repo root is pinned to zod v3 by @a2ui/web_core's peer range - the two cannot share a dependency tree. Versions pinned exactly (json-render is pre-1.0; churn stays contained here).",
+  "scripts": {
+    "gate": "tsc -p tsconfig.json && tsx validate.ts"
+  },
+  "dependencies": {
+    "@json-render/core": "0.19.0",
+    "@json-render/react": "0.19.0",
+    "react": "19.2.7",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
