@@ -3,7 +3,7 @@
   "dspack": "0.4",
   "name": "shadcn/ui",
   "description": "A collection of reusable components built with Radix UI and Tailwind CSS. Components are copied into your project, not installed as a dependency.",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "metadata": {
     "source": "https://ui.shadcn.com",
     "license": "MIT"
@@ -1079,10 +1079,10 @@
       "id": "rule.trigger-carries-label",
       "type": "required-props",
       "severity": "must",
-      "component": "button",
-      "within": "alert-dialog-trigger",
+      "component": "alert-dialog-trigger",
       "requiredText": true,
-      "rationale": "The trigger button must present its label as its own text. Assistive technology reads the control's accessible name from the element itself, and protocol projections lift a trigger label from the label-bearing component's direct text — a label nested in a child (e.g. a badge) or absent entirely produces a control with no accessible name and an instance downstream emitters must refuse.",
+      "textScope": "subtree",
+      "rationale": "The trigger must present an accessible label: non-empty text somewhere under the trigger. Protocol projections lift the label from the trigger's subtree (preferring a label-bearing button; lifts are audited) — a trigger with no label text anywhere yields a control with no accessible name and an instance downstream emitters must refuse.",
       "examples": ["ex.delete-account-confirmation"],
       "tags": ["accessibility", "projection"]
     },
