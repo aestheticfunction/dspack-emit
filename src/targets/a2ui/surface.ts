@@ -13,7 +13,11 @@
  *
  * Honest scope (mirrors MAPPING.md):
  *  - Compound composition flattens per the documented casualty mapping
- *    (`subText` / `subButtonText` consume the node's whole subtree).
+ *    (`subText` / `subButtonText` consume the node's whole subtree). When no
+ *    label-bearing component carries a `subButtonText` label, the first
+ *    direct text under that sub is LIFTED (audited, `surface-label-lifted`;
+ *    spec v0.4 amendment 2026-07-04) — relocation of existing text, never
+ *    synthesis.
  *  - A2UI requires declarative actions the surface format does not express;
  *    they are synthesized (deterministic event-name slug) and recorded as
  *    warnings, not silently invented.
@@ -239,6 +243,35 @@ class SurfaceEmitter {
       for (const child of collectChildren(n)) visit(child.node, nextInside);
     };
     visit(node, null);
+
+    // Audited label lift (spec v0.4 amendment, 2026-07-04): when no
+    // label-bearing component inside a subButtonText sub carried direct text,
+    // lift the FIRST direct text found under that sub (the sub's own text
+    // included, document order). This is a LIFT of existing text — relocation,
+    // never synthesis: if nothing exists to lift, the prop stays missing and
+    // gate A3 refuses the instance exactly as before. Every lift is recorded,
+    // like the other documented casualties, so audit reports can count them.
+    for (const [subId, buttonProp] of Object.entries(subButtonText)) {
+      if (instance[buttonProp] !== undefined) continue;
+      const lift = (n: SurfaceNode, inside: boolean): { text: string; component: string } | undefined => {
+        const here = inside || n.component === subId;
+        if (here && n.text !== undefined && n.text !== "") return { text: n.text, component: n.component };
+        for (const child of collectChildren(n)) {
+          const found = lift(child.node, here);
+          if (found) return found;
+        }
+        return undefined;
+      };
+      const found = lift(node, false);
+      if (found) {
+        instance[buttonProp] = found.text;
+        this.warnings.push({
+          code: "surface-label-lifted",
+          message: `${path}: '${buttonProp}' lifted from direct text on '${found.component}' inside '${subId}' — no label-bearing component carried it (documented projection extension; lift, never synthesis).`,
+        });
+      }
+    }
+
     this.warnings.push({
       code: "surface-composition-flattened",
       message: `${path}: compound '${node.component}' subtree flattened onto emitted props (documented casualty; nested props beyond text are not carried).`,

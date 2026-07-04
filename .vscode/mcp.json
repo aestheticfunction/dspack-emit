@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "ds-mcp": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "/Users/ryandombrowski/Desktop/ds-mcp/dist/index.js",
+        "--dspack",
+        "/Users/ryandombrowski/Desktop/dspack-to-a2ui/input/shadcn-ui.dspack.json"
+      ]
+    }
+  }
+}
