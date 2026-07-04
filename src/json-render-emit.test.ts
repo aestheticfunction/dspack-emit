@@ -16,7 +16,7 @@
  * @a2ui/web_core pins the root tree to zod v3 while json-render requires
  * zod v4. This file asserts everything that is assertable offline.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { DspackDoc, DspackSurface, SurfaceNode } from "./types.js";
 import { transform } from "./transform/index.js";
@@ -192,5 +192,52 @@ describe("codegen: generated modules match the reviewed goldens", () => {
   it("excludes exactly the handler props, with reasons recorded", () => {
     const excluded = model.components.flatMap((c) => c.excludedProps.map((e) => `${c.dspackId}.${e.name}`));
     expect(excluded).toEqual(["alert-dialog.onOpenChange", "dialog.onOpenChange", "dropdown-menu.onOpenChange"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PR-20: the SECOND contract through the json-render target. The asymmetry
+// finding's prediction is the test: an empty profile suffices, the catalog
+// carries Astryx's own (props-based) vocabulary, and the only losses are the
+// data-driven array props — excluded loudly with documented reasons, never
+// silently dropped.
+// ---------------------------------------------------------------------------
+import { astryxJsonRenderProfile } from "./targets/json-render/profile.js";
+
+const astryxDoc = JSON.parse(readFileSync("input/astryx.dspack.json", "utf8")) as DspackDoc & {
+  examples: Array<{ id: string; surface: DspackSurface }>;
+};
+const deleteProjectFixture = JSON.parse(
+  readFileSync("surface/delete-project.dsurface.json", "utf8"),
+) as DspackSurface;
+
+describe("astryx through json-render (empty profile — the asymmetry prediction, contract n=2)", () => {
+  const { catalogTs, registryTsx, model } = generateJsonRenderModules(astryxDoc, astryxJsonRenderProfile);
+
+  it("catalog.ts equals golden", () => {
+    const goldenPath = "golden/json-render/astryx.catalog.ts.golden";
+    if (process.env.UPDATE_GOLDEN) writeFileSync(goldenPath, catalogTs);
+    expect(catalogTs).toBe(readFileSync(goldenPath, "utf8"));
+  });
+
+  it("registry.tsx equals golden", () => {
+    const goldenPath = "golden/json-render/astryx.registry.tsx.golden";
+    if (process.env.UPDATE_GOLDEN) writeFileSync(goldenPath, registryTsx);
+    expect(registryTsx).toBe(readFileSync(goldenPath, "utf8"));
+  });
+
+  it("data-driven array props are excluded LOUDLY (the lossy edge of the lossless target)", () => {
+    const table = model.components.find((c) => c.dspackId === "table")!;
+    const menu = model.components.find((c) => c.dspackId === "dropdown-menu")!;
+    expect(table.excludedProps.map((p) => p.name).sort()).toEqual(["columns", "data"]);
+    expect(menu.excludedProps.map((p) => p.name)).toContain("items");
+    for (const p of [...table.excludedProps, ...menu.excludedProps]) {
+      expect(p.reason).toMatch(/unsupported prop type 'array'/);
+    }
+  });
+
+  it("the worked example emits and instance-validates against the generated model (offline J2/J3)", () => {
+    const { spec } = emitJsonRenderSpec(deleteProjectFixture, astryxDoc, astryxJsonRenderProfile);
+    expect(validateSpecAgainstModel(spec, model)).toEqual([]);
   });
 });
