@@ -1,0 +1,41 @@
+{
+  "dspackSurface": "0.1",
+  "system": "Astryx",
+  "intent": "destructive-action",
+  "root": {
+    "component": "card",
+    "children": [
+      {
+        "component": "text",
+        "props": {
+          "as": "h2"
+        },
+        "text": "Danger zone"
+      },
+      {
+        "component": "text",
+        "props": {
+          "as": "p"
+        },
+        "text": "Deleting a project removes all of its data permanently."
+      },
+      {
+        "component": "button",
+        "props": {
+          "label": "Delete project",
+          "variant": "destructive"
+        }
+      },
+      {
+        "component": "alert-dialog",
+        "props": {
+          "title": "Delete this project?",
+          "description": "This action cannot be undone. The project and all its data will be permanently removed.",
+          "actionLabel": "Delete project",
+          "cancelLabel": "Cancel",
+          "actionVariant": "destructive"
+        }
+      }
+    ]
+  }
+}

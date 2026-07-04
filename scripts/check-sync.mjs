@@ -16,6 +16,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const MANIFEST = [
   {
+    local: "input/astryx.dspack.json",
+    source:
+      "https://raw.githubusercontent.com/aestheticfunction/dspack/main/examples/astryx.dspack.json",
+    note: "the Astryx transformer input — copy of the spec repo source of truth",
+  },
+  {
     local: "input/shadcn-ui.dspack.json",
     source:
       "https://raw.githubusercontent.com/aestheticfunction/dspack/main/examples/shadcn-ui.dspack.json",

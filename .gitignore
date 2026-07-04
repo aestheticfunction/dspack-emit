@@ -7,3 +7,4 @@ dist/
 .DS_Store
 gates/json-render/node_modules/
 gates/json-render/generated/
+.vscode/
