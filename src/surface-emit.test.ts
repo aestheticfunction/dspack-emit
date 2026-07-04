@@ -92,6 +92,36 @@ describe("emitSurface: worked example (ex.delete-account-confirmation)", () => {
     const again = emitSurface(workedExample.surface, doc);
     expect(again.messages).toEqual(messages);
   });
+
+  it("lifts a nested label when no label-bearing component carries it — audited, and A3 passes (spec v0.4 amendment)", () => {
+    // The measured 2026-07-03 signature shape: trigger > button > badge{text}.
+    const nested: DspackSurface = structuredClone(workedExample.surface);
+    const trigger = nested.root.children![0].children![0];
+    trigger.children = [
+      { component: "button", props: { variant: "destructive" }, children: [{ component: "badge", text: "Delete account" }] },
+    ];
+    const { messages: lifted, warnings: liftWarnings } = emitSurface(nested, doc);
+    const dialog = componentsOf(lifted).find((c) => c.component === "AlertDialog")!;
+    expect(dialog.triggerLabel).toBe("Delete account");
+    const lift = liftWarnings.find((w) => w.code === "surface-label-lifted")!;
+    expect(lift.message).toMatch(/'triggerLabel' lifted from direct text on 'badge' inside 'alert-dialog-trigger'/);
+    for (const version of ["0.9.1", "1.0"] as const) {
+      const { validation } = transform(doc, version, { messages: lifted });
+      expect(validation.gates.every((g) => g.pass), `gates for ${version}`).toBe(true);
+    }
+  });
+
+  it("lift is relocation, never synthesis: a trigger with no text anywhere still fails A3", () => {
+    const bare: DspackSurface = structuredClone(workedExample.surface);
+    const trigger = bare.root.children![0].children![0];
+    trigger.children = [{ component: "button", props: { variant: "destructive" }, children: [{ component: "badge" }] }];
+    const { messages: bareMessages, warnings: bareWarnings } = emitSurface(bare, doc);
+    const dialog = componentsOf(bareMessages).find((c) => c.component === "AlertDialog")!;
+    expect(dialog.triggerLabel).toBeUndefined();
+    expect(bareWarnings.map((w) => w.code)).not.toContain("surface-label-lifted");
+    const { validation } = transform(doc, "0.9.1", { messages: bareMessages });
+    expect(validation.gates.find((g) => g.name === "instance")!.pass).toBe(false); // A3 refuses, as before
+  });
 });
 
 describe("emitSurface: general projection", () => {
