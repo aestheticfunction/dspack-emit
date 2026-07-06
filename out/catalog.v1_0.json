@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rdombrowski.dev/catalogs/shadcn-ui/v1_0/catalog.json",
   "title": "shadcn/ui — A2UI catalog (compiled from dspack)",
-  "description": "A2UI catalog compiled from the shadcn/ui dspack v0.2 contract. Component shapes, variant enums, and the primary design token are projected onto the A2UI basic component vocabulary. See MAPPING.md for per-field fidelity.",
+  "description": "A2UI catalog compiled from the shadcn/ui dspack v0.4 contract. Component shapes, variant enums, and the primary design token are projected onto the A2UI basic component vocabulary. See MAPPING.md for per-field fidelity.",
   "instructions": "For layout, use the Column component to organize other components.",
   "catalogId": "https://rdombrowski.dev/catalogs/shadcn-ui/v1_0/catalog.json",
   "components": {
