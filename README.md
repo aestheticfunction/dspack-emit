@@ -44,7 +44,7 @@ https://github.com/user-attachments/assets/510a781b-4214-49b3-b997-9cbecdc36961
 
 | Path | What |
 | --- | --- |
-| `input/shadcn-ui.dspack.json` | Example input: a dspack v0.2 contract from a React+Tailwind system (shadcn/ui). |
+| `input/shadcn-ui.dspack.json` | Example input: a dspack v0.4 contract from a React+Tailwind system (shadcn/ui). |
 | `src/` | The transformer: source-agnostic engine + data-only profile + versioned emitter + validator. |
 | `surface/settings-card.surface.json` | Hand-authored A2UI v0.9.1 surface instantiating the compiled components. |
 | `out/catalog.v0_9_1.json`, `out/catalog.v1_0.json` | Generated catalogs (no external `$ref`, versioned `catalogId`). |
@@ -116,7 +116,7 @@ before anything reaches this emitter.
 
 ## Surface emission (dspack surface → A2UI)
 
-The input contract is now **dspack v0.3**, whose `examples[]` embed *dspack
+The input contract is now **dspack v0.4**, whose `examples[]` embed *dspack
 surface* documents — a protocol-neutral component tree in dspack vocabulary
 (schema: `dspack.surface.v0_1.schema.json` in the dspack repo). This repo
 compiles those surfaces to A2UI v0.9 messages:
