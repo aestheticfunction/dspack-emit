@@ -1,5 +1,7 @@
 # Mapping & fidelity: dspack → A2UI catalog
 
+> **Note (2026-07-06):** This records the original **v0.2** proof-of-concept mapping; the emitter now targets the [dspack v0.4 contract](https://github.com/aestheticfunction/dspack/blob/main/spec/dspack-v0.4.md). The per-field mapping below is preserved as-is.
+
 This document records, per field, how the shadcn/ui **dspack v0.2** contract
 (`input/shadcn-ui.dspack.json`) projects onto an **A2UI catalog** (`out/catalog.*.json`),
 using one of four fidelity classes:
