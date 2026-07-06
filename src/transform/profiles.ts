@@ -127,7 +127,7 @@ const CompId = { $ref: "#/$defs/ComponentId" };
 export const shadcnProfile: Profile = {
   catalogTitle: "shadcn/ui — A2UI catalog (compiled from dspack)",
   catalogDescription:
-    "A2UI catalog compiled from the shadcn/ui dspack v0.2 contract. Component shapes, " +
+    "A2UI catalog compiled from the shadcn/ui dspack v0.4 contract. Component shapes, " +
     "variant enums, and the primary design token are projected onto the A2UI basic " +
     "component vocabulary. See MAPPING.md for per-field fidelity.",
   catalogIdBase: "https://rdombrowski.dev/catalogs/shadcn-ui",
