@@ -8,7 +8,7 @@
       {
         "component": "text",
         "props": {
-          "as": "h2"
+          "type": "display-3"
         },
         "text": "Danger zone"
       },

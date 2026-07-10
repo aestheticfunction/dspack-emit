@@ -54,7 +54,7 @@ export const catalog = defineCatalog(schema, {
     },
     Card: {
       props: z.object({
-        variant: z.enum(["outlined", "elevated", "filled"]).describe("Card visual treatment.").nullable(),
+        variant: z.enum(["default", "muted", "blue", "cyan", "gray", "green", "orange", "pink", "purple", "red", "teal", "yellow"]).describe("Background color variant: 'default' is the standard card background, 'muted' de-emphasises the card. Color variants are for categorization, not status (use Badge or a banner for status).").nullable(),
         text: z.string().describe("Text content (projected from the dspack surface node's `text` field).").nullable(),
       }),
       slots: ["default"],
@@ -97,7 +97,8 @@ export const catalog = defineCatalog(schema, {
     },
     Text: {
       props: z.object({
-        as: z.enum(["span", "p", "div", "label", "h1", "h2", "h3"]).describe("Rendered element.").nullable(),
+        type: z.enum(["body", "large", "label", "supporting", "code", "display-1", "display-2", "display-3"]).describe("Semantic text type; determines size, weight, and line-height from the theme. Headings are expressed via the display types (or Astryx's separate Heading component), never via the rendered element.").nullable(),
+        as: z.enum(["span", "p", "div", "label"]).describe("Rendered HTML element. Heading tags are not accepted; use `type` for heading-scale text.").nullable(),
         text: z.string().describe("Text content (projected from the dspack surface node's `text` field).").nullable(),
       }),
       slots: ["default"],
