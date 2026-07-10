@@ -26,7 +26,7 @@ export const shadcnJsonRenderProfile: JsonRenderProfile = {
 };
 
 /**
- * Astryx (facebook/astryx @ v0.1.2, nine-component slice). Also empty — the
+ * Astryx (facebook/astryx @ v0.1.4, nine-component slice). Also empty — the
  * asymmetry finding's prediction held for a SECOND contract with a different
  * idiom: nothing needs projecting, because the catalog carries the contract's
  * own vocabulary. Astryx's data-driven array props (table.data/columns,
