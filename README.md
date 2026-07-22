@@ -7,6 +7,10 @@ governed dspack surfaces into protocol targets — an
 **[json-render](https://github.com/vercel-labs/json-render) catalog/registry
 modules + specs**.
 
+> Part of the [dspack ecosystem](https://github.com/aestheticfunction) — the organization profile has the full map of how the repositories fit together.
+>
+> **Kind:** library (npm `@aestheticfunction/dspack-emit`) · **Audience:** engineers wiring dspack contracts and surfaces to rendering protocols · **Neighbors:** consumes [dspack](https://github.com/aestheticfunction/dspack) contracts; consumed by [dspack-gen](https://github.com/aestheticfunction/dspack-gen) and [dspack-studio](https://github.com/aestheticfunction/dspack-studio) ([hosted replay](https://studio.aesthetic-function.com)); pairs with [ds-mcp](https://github.com/aestheticfunction/ds-mcp) in the demo
+
 > **Naming note:** this repo was renamed from `dspack-to-a2ui` to `dspack-emit`
 > when the second target landed (ADR-D2; the old GitHub URL redirects). The
 > npm package is **`@aestheticfunction/dspack-emit`** from `0.3.0`; the last
@@ -119,7 +123,7 @@ before anything reaches this emitter.
 The input contract is now **dspack v0.4**, whose `examples[]` embed *dspack
 surface* documents — a protocol-neutral component tree in dspack vocabulary
 (schema: `dspack.surface.v0_1.schema.json` in the dspack repo). This repo
-compiles those surfaces to A2UI v0.9 messages:
+compiles those surfaces to A2UI v0.9.1 messages:
 
 ```bash
 npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 0.9.1 --out out \
