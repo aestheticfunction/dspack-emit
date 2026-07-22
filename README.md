@@ -10,6 +10,8 @@ modules + specs**.
 > Part of the [dspack ecosystem](https://github.com/aestheticfunction) — the organization profile has the full map of how the repositories fit together.
 >
 > **Kind:** library (npm `@aestheticfunction/dspack-emit`) · **Audience:** engineers wiring dspack contracts and surfaces to rendering protocols · **Neighbors:** consumes [dspack](https://github.com/aestheticfunction/dspack) contracts; consumed by [dspack-gen](https://github.com/aestheticfunction/dspack-gen) and [dspack-studio](https://github.com/aestheticfunction/dspack-studio) ([hosted replay](https://studio.aesthetic-function.com)); pairs with [ds-mcp](https://github.com/aestheticfunction/ds-mcp) in the demo
+>
+> **Mapping your own design system?** Profiles are pure data you author in your own codebase against this package — the walkthrough is [docs/PROFILES.md](docs/PROFILES.md); the broader adoption journey starts at [ADOPTING.md](https://github.com/aestheticfunction/dspack/blob/main/ADOPTING.md).
 
 > **Naming note:** this repo was renamed from `dspack-to-a2ui` to `dspack-emit`
 > when the second target landed (ADR-D2; the old GitHub URL redirects). The
