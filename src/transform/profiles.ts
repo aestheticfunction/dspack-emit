@@ -62,6 +62,15 @@ export interface ComponentPlan {
   required: string[];
   /** How the surface emitter projects a dspack-surface node onto this component. */
   surfacePlan?: SurfacePlanDirectives;
+  /**
+   * Explicit per-sub-component disposition for compound components: every
+   * contract sub id -> one line naming how the surface emitter treats it
+   * (which prop consumes it, "transparent grouping", or "dropped: <why>").
+   * The profile-parity suite fails any mapped compound whose sub-family is
+   * not fully classified here — a parent mapping alone never implies its
+   * subs are supported.
+   */
+  subCoverage?: Record<string, string>;
 }
 
 /**
@@ -95,6 +104,38 @@ export interface SurfacePlanDirectives {
   childrenProp?: string;
   /** CSR props copied verbatim into same-named structural slots (e.g. Table columns/rows). */
   structuralPassthrough?: string[];
+  /**
+   * Named parent strategy "tableSubs": consume a tabular sub-component
+   * subtree into the synthesized caption/columns/rows shape. Domain-neutral
+   * by construction: cells flatten to their subtree TEXT in document order —
+   * nested component structure and props (whatever the component) are a
+   * documented loss, warned per cell, never re-interpreted into semantic
+   * fields. Sub ids listed in `drops` are skipped with a warning carrying
+   * the declared reason. structuralPassthrough-provided values win over
+   * consumed ones (the props path, where a contract expresses one).
+   */
+  subTable?: {
+    caption: string;
+    header: string;
+    headerCell: string;
+    body: string;
+    row: string;
+    cell: string;
+    targetCaption: string;
+    targetColumns: string;
+    targetRows: string;
+    drops: Record<string, string>;
+  };
+  /**
+   * Named parent strategy "subFlatten": grouping sub-components in
+   * `transparent` splice their children inline (structure dropped, order
+   * kept, warned); text-bearing sub-components in `asText` synthesize the
+   * profile's text primitive with the given variant.
+   */
+  subFlatten?: {
+    transparent: string[];
+    asText: Record<string, string>;
+  };
 }
 
 export interface StructuralSlot {
@@ -196,11 +237,26 @@ export const shadcnProfile: Profile = {
             "The ID of the single child component. Wrap multiple elements in a Column and pass its ID.",
           synthNote:
             "A2UI Card takes exactly one child by ID; dspack Card composes via sub-components " +
-            "(CardHeader/CardContent/CardFooter), which collapse to a single child slot.",
+            "(CardHeader/CardContent/CardFooter), which flatten (subFlatten strategy: grouping " +
+            "subs splice their children inline; title/description synthesize Text) and collapse " +
+            "to a single, possibly Column-wrapped, child slot.",
         },
       },
       required: ["child"],
-      surfacePlan: { childProp: "child" },
+      surfacePlan: {
+        childProp: "child",
+        subFlatten: {
+          transparent: ["card-header", "card-content", "card-footer"],
+          asText: { "card-title": "h3", "card-description": "caption" },
+        },
+      },
+      subCoverage: {
+        "card-header": "transparent grouping: children splice inline, in order (subFlatten strategy)",
+        "card-title": "text -> synthesized Text (variant h3)",
+        "card-description": "text -> synthesized Text (variant caption)",
+        "card-content": "transparent grouping: children splice inline, in order",
+        "card-footer": "transparent grouping: children splice inline, in order",
+      },
     },
 
     {
@@ -268,8 +324,11 @@ export const shadcnProfile: Profile = {
 
     {
       // shadcn Table -> a synthesized presentational A2UI Table shape (caption/columns/rows).
-      // The dspack sub-component composition (header/body/row/cell) cannot be represented and
-      // is recorded as a casualty by the per-component composition handling.
+      // The contract's table is purely sub-component-composed (it has no props), so the
+      // surface emitter consumes the sub tree via the `subTable` strategy: caption text,
+      // header-cell texts as columns, body rows as cells-of-text. Nested component
+      // structure inside cells flattens to its text with a per-cell warning — the
+      // documented loss; nothing is re-interpreted into semantic fields.
       a2ui: "Table",
       dspackId: "table",
       commons: ["ComponentCommon"],
@@ -286,12 +345,37 @@ export const shadcnProfile: Profile = {
         },
         rows: {
           schema: { type: "array", items: { type: "object" } },
-          description: "Row records, each { cells: string[], status?: { label, variant } }.",
+          description: "Row records, each { cells: string[] }.",
           synthNote: "Row data carried as a static array; A2UI has no tabular data model.",
         },
       },
       required: ["columns", "rows"],
-      surfacePlan: { structuralPassthrough: ["caption", "columns", "rows"] },
+      surfacePlan: {
+        structuralPassthrough: ["caption", "columns", "rows"],
+        subTable: {
+          caption: "table-caption",
+          header: "table-header",
+          headerCell: "table-head",
+          body: "table-body",
+          row: "table-row",
+          cell: "table-cell",
+          targetCaption: "caption",
+          targetColumns: "columns",
+          targetRows: "rows",
+          drops: {
+            "table-footer": "summary rows have no slot in the synthesized caption/columns/rows shape",
+          },
+        },
+      },
+      subCoverage: {
+        "table-caption": "text -> the synthesized `caption` (subTable strategy)",
+        "table-header": "structural grouping; its rows' header-cell texts -> `columns` (subTable)",
+        "table-head": "text -> a `columns` label (in the header) or a plain row cell string (as a body row header)",
+        "table-body": "structural grouping; its rows -> `rows` (subTable)",
+        "table-row": "one `rows` record (header row feeds `columns` instead)",
+        "table-cell": "subtree text, document order, -> one `rows[].cells` string; nested component structure/props are a warned loss",
+        "table-footer": "dropped with warning: summary rows have no slot in the synthesized shape",
+      },
     },
 
     {
@@ -342,6 +426,16 @@ export const shadcnProfile: Profile = {
         },
         subButtonText: { "alert-dialog-trigger": "triggerLabel" },
         actionProp: "action",
+      },
+      subCoverage: {
+        "alert-dialog-trigger": "label-bearing text under it -> `triggerLabel` (subButtonText; audited lift when no label-bearer)",
+        "alert-dialog-content": "transparent grouping, traversed by the subtree text consumer",
+        "alert-dialog-header": "transparent grouping, traversed by the subtree text consumer",
+        "alert-dialog-title": "text -> `title` (subText)",
+        "alert-dialog-description": "text -> `description` (subText)",
+        "alert-dialog-footer": "transparent grouping, traversed by the subtree text consumer",
+        "alert-dialog-action": "text -> `confirmLabel` (subText); its action is the synthesized confirm event",
+        "alert-dialog-cancel": "text -> `cancelLabel` (subText)",
       },
     },
   ],

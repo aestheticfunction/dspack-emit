@@ -148,7 +148,7 @@ class SurfaceEmitter {
 
     this.applyPropMap(node, plan, instance, path);
     const sp = plan.surfacePlan ?? {};
-    const consumesSubtree = Boolean(sp.subText || sp.subButtonText);
+    const consumesSubtree = Boolean(sp.subText || sp.subButtonText || sp.subTable);
 
     if (sp.structuralPassthrough) {
       for (const key of sp.structuralPassthrough) {
@@ -157,6 +157,7 @@ class SurfaceEmitter {
       }
     }
     if (sp.subText || sp.subButtonText) this.applySubContent(node, sp.subText ?? {}, sp.subButtonText ?? {}, instance, path);
+    if (sp.subTable) this.applySubTable(node, sp.subTable, instance, path);
     if (sp.textProp && node.text !== undefined) instance[sp.textProp] = node.text;
     if (sp.textChildProp && node.text !== undefined) {
       instance[sp.textChildProp] = this.emitTextPrimitive(node.text, `${id}_label`, path);
@@ -171,9 +172,13 @@ class SurfaceEmitter {
     }
 
     if (!consumesSubtree) {
-      const childNodes = collectChildren(node);
+      const childNodes = sp.subFlatten ? this.flattenSubs(node, sp.subFlatten, path) : collectChildren(node);
       if (childNodes.length > 0) {
-        const childIds = childNodes.map((child, i) => this.emitNode(child.node, `${path}${child.suffix}[${i}]`));
+        const childIds = childNodes.map((child, i) =>
+          "textVariant" in child
+            ? this.emitTextPrimitive(child.text, `${id}_${slug(child.textVariant)}`, path, child.textVariant)
+            : this.emitNode(child.node, `${path}${child.suffix}[${i}]`),
+        );
         if (sp.childrenProp) {
           instance[sp.childrenProp] = childIds;
         } else if (sp.childProp) {
@@ -278,15 +283,155 @@ class SurfaceEmitter {
     });
   }
 
-  private emitTextPrimitive(text: string, preferredId: string, path: string): string {
+  private emitTextPrimitive(text: string, preferredId: string, path: string, variant?: string): string {
     const { textComponent, textProp } = this.profile.surfaceSynthesis;
     const id = this.allocateId(preferredId, path);
-    this.components.push({ id, component: textComponent, [textProp]: text });
+    const instance: Json = { id, component: textComponent, [textProp]: text };
+    if (variant !== undefined) instance.variant = variant;
+    this.components.push(instance);
     this.warnings.push({
       code: "surface-synthesized-text",
       message: `${path}: node text projected as a synthesized ${textComponent} child ('${id}') — the surface format has no text primitive.`,
     });
     return id;
+  }
+
+  /**
+   * Named parent strategy "subFlatten" (e.g. Card): grouping sub-components
+   * splice their children inline in document order (their own structure is a
+   * warned, documented loss); text-bearing sub-components synthesize the
+   * profile's text primitive with the declared variant. Everything else
+   * passes through to ordinary child emission.
+   */
+  private flattenSubs(
+    node: SurfaceNode,
+    spec: NonNullable<NonNullable<ComponentPlan["surfacePlan"]>["subFlatten"]>,
+    path: string,
+  ): Array<{ node: SurfaceNode; suffix: string } | { text: string; textVariant: string }> {
+    const out: Array<{ node: SurfaceNode; suffix: string } | { text: string; textVariant: string }> = [];
+    const visit = (n: SurfaceNode, suffix: string): void => {
+      if (spec.transparent.includes(n.component)) {
+        this.warnings.push({
+          code: "surface-sub-flattened",
+          message: `${path}: grouping sub-component '${n.component}' spliced inline (subFlatten strategy); its own structure is not carried.`,
+        });
+        if (n.text !== undefined && n.text !== "") out.push({ text: n.text, textVariant: "body" });
+        for (const child of collectChildren(n)) visit(child.node, child.suffix);
+        return;
+      }
+      const variant = spec.asText[n.component];
+      if (variant !== undefined) {
+        const text = this.subtreeText(n);
+        if (text !== "") {
+          out.push({ text, textVariant: variant });
+        } else {
+          this.warnings.push({
+            code: "surface-sub-dropped",
+            message: `${path}: '${n.component}' carried no text to synthesize; dropped.`,
+          });
+        }
+        return;
+      }
+      out.push({ node: n, suffix });
+    };
+    for (const child of collectChildren(node)) visit(child.node, child.suffix);
+    return out;
+  }
+
+  /**
+   * Named parent strategy "subTable": consume the tabular sub tree into the
+   * synthesized caption/columns/rows shape. Domain-neutral: a cell is its
+   * subtree's text in document order — nested component structure and props
+   * are a per-cell warned loss, never re-interpreted into semantic fields.
+   * structuralPassthrough values (the props path) win over consumed ones.
+   */
+  private applySubTable(
+    node: SurfaceNode,
+    spec: NonNullable<NonNullable<ComponentPlan["surfacePlan"]>["subTable"]>,
+    instance: Json,
+    path: string,
+  ): void {
+    const columns: string[] = [];
+    const rows: Json[] = [];
+    let caption: string | undefined;
+
+    const cellText = (cell: SurfaceNode, cellPath: string): string => {
+      const nested = collectChildren(cell);
+      const text = this.subtreeText(cell);
+      if (nested.length > 0) {
+        const names = nested.map((c) => `'${c.node.component}'`).join(", ");
+        this.warnings.push({
+          code: "surface-table-cell-flattened",
+          message: `${cellPath}: nested ${names} flattened to cell text; component structure and props are not carried by the synthesized table shape.`,
+        });
+      }
+      return text;
+    };
+
+    const consumeRow = (row: SurfaceNode, rowPath: string, into: string[]): void => {
+      for (const child of collectChildren(row)) {
+        const c = child.node.component;
+        if (c === spec.cell || c === spec.headerCell) {
+          into.push(cellText(child.node, `${rowPath}${child.suffix}`));
+        } else if (spec.drops[c] !== undefined) {
+          this.warnings.push({ code: "surface-sub-dropped", message: `${rowPath}: '${c}' dropped: ${spec.drops[c]}.` });
+        } else {
+          this.warnings.push({
+            code: "surface-sub-dropped",
+            message: `${rowPath}: '${c}' has no slot in a synthesized table row; dropped (its text is not lifted).`,
+          });
+        }
+      }
+    };
+
+    for (const child of collectChildren(node)) {
+      const c = child.node.component;
+      const childPath = `${path}${child.suffix}`;
+      if (c === spec.caption) {
+        caption ??= cellText(child.node, childPath);
+      } else if (c === spec.header) {
+        for (const inner of collectChildren(child.node)) {
+          if (inner.node.component === spec.row) consumeRow(inner.node, `${childPath}${inner.suffix}`, columns);
+          else this.warnings.push({ code: "surface-sub-dropped", message: `${childPath}: '${inner.node.component}' inside '${spec.header}' has no slot; dropped.` });
+        }
+      } else if (c === spec.body) {
+        for (const inner of collectChildren(child.node)) {
+          if (inner.node.component === spec.row) {
+            const cells: string[] = [];
+            consumeRow(inner.node, `${childPath}${inner.suffix}`, cells);
+            rows.push({ cells });
+          } else {
+            this.warnings.push({ code: "surface-sub-dropped", message: `${childPath}: '${inner.node.component}' inside '${spec.body}' has no slot; dropped.` });
+          }
+        }
+      } else if (spec.drops[c] !== undefined) {
+        this.warnings.push({ code: "surface-sub-dropped", message: `${childPath}: '${c}' dropped: ${spec.drops[c]}.` });
+      } else {
+        this.warnings.push({
+          code: "surface-sub-dropped",
+          message: `${childPath}: '${c}' has no slot in the synthesized table shape; dropped.`,
+        });
+      }
+    }
+
+    if (instance[spec.targetCaption] === undefined && caption !== undefined) instance[spec.targetCaption] = caption;
+    if (instance[spec.targetColumns] === undefined && columns.length > 0) instance[spec.targetColumns] = columns;
+    if (instance[spec.targetRows] === undefined && rows.length > 0) instance[spec.targetRows] = rows;
+    this.warnings.push({
+      code: "surface-composition-flattened",
+      message: `${path}: compound '${node.component}' subtree consumed into the synthesized table shape (documented casualty; cell content beyond text is not carried).`,
+    });
+  }
+
+  /** All text in a node's subtree, document order, space-joined. */
+  private subtreeText(node: SurfaceNode): string {
+    const parts: string[] = [];
+    const visit = (n: SurfaceNode): void => {
+      if (n.text !== undefined && n.text !== "") parts.push(n.text);
+      for (const child of collectChildren(n)) visit(child.node);
+    };
+    visit(node);
+    return parts.join(" ");
   }
 
   private wrapInColumn(childIds: string[], parentId: string, path: string): string {

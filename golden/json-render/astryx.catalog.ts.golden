@@ -104,6 +104,36 @@ export const catalog = defineCatalog(schema, {
       slots: ["default"],
       description: "Body text content.",
     },
+    List: {
+      props: z.object({
+        density: z.enum(["compact", "balanced", "spacious"]).describe("Item density.").nullable(),
+        hasDividers: z.boolean().describe("Renders dividers between items.").nullable(),
+        text: z.string().describe("Text content (projected from the dspack surface node's `text` field).").nullable(),
+      }),
+      slots: ["default"],
+      description: "A vertical collection of items with consistent spacing, dividers, and optional markers.",
+    },
+    SelectableCard: {
+      props: z.object({
+        label: z.string().describe("The option's name. Every option is named.").nullable(),
+        isSelected: z.boolean().describe("Whether this option is currently selected. Presentational: selection state lives in the shared data model and re-delivers this prop.").nullable(),
+        isDisabled: z.boolean().describe("Whether the option can be chosen.").nullable(),
+        variant: z.enum(["default", "transparent", "muted", "blue", "cyan", "gray", "green", "orange", "pink", "purple", "red", "teal", "yellow"]).describe("Card background variant, verbatim from SelectableCard's union; color variants categorize rather than signal status.").nullable(),
+        text: z.string().describe("Text content (projected from the dspack surface node's `text` field).").nullable(),
+      }),
+      slots: ["default"],
+      description: "A card that toggles between selected and unselected states with an accent border.",
+    },
+    // metadata-list.items excluded: unsupported prop type 'array'
+    MetadataList: {
+      props: z.object({
+        columns: z.enum(["single", "multi"]).describe("Column layout for the attribute grid.").nullable(),
+        orientation: z.enum(["vertical", "horizontal"]).describe("Label/value flow direction.").nullable(),
+        text: z.string().describe("Text content (projected from the dspack surface node's `text` field).").nullable(),
+      }),
+      slots: ["default"],
+      description: "Key-value pairs for object attributes, in a structured layout. DATA-DRIVEN: items are an array prop, the same Astryx data-props idiom as Table.",
+    },
   },
   actions: {},
 });
