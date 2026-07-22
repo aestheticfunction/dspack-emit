@@ -62,5 +62,23 @@ export const { registry } = defineRegistry(catalog, {
         {children}
       </div>
     ),
+    List: ({ props, children }) => (
+      <div data-dspack="list">
+        {props.text}
+        {children}
+      </div>
+    ),
+    SelectableCard: ({ props, children }) => (
+      <div data-dspack="selectable-card">
+        {props.text}
+        {children}
+      </div>
+    ),
+    MetadataList: ({ props, children }) => (
+      <div data-dspack="metadata-list">
+        {props.text}
+        {children}
+      </div>
+    ),
   },
 });
