@@ -12,10 +12,9 @@
  *  3. instance: every component instance in the hand-authored surface validates
  *     against the catalog's own #/$defs/anyComponent.
  */
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
+import { catalogMetaSchemas } from "./meta/catalog-meta.js";
 import type { A2uiCatalog, A2uiVersion, Json } from "../types.js";
 
 export interface GateResult {
@@ -30,9 +29,6 @@ export interface ValidationReport {
   pass: boolean;
   gates: GateResult[];
 }
-
-const metaPath = (ver: A2uiVersion): string =>
-  fileURLToPath(new URL(`./meta/a2ui-catalog.meta.${ver === "0.9.1" ? "0_9_1" : "1_0"}.json`, import.meta.url));
 
 function newAjv(): Ajv2020 {
   const ajv = new Ajv2020({ strict: false, allErrors: true, validateFormats: true });
@@ -95,7 +91,7 @@ export function validateCatalog(
   });
 
   // Gate 2 — catalog shape.
-  const meta = JSON.parse(readFileSync(metaPath(version), "utf8")) as Json;
+  const meta = catalogMetaSchemas[version];
   const validateShape = newAjv().compile(meta);
   const shapeOk = validateShape(catalog) as boolean;
   gates.push({
