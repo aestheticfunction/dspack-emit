@@ -86,6 +86,28 @@ Or directly:
 npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 1.0 --out out
 ```
 
+### Profiles as JSON (`--profile`, `loadProfile`, `scaffoldProfile`)
+
+The `Profile` has always been pure data; it is now also *reachable* as data.
+A `*.profile.json` document (schema:
+[`src/transform/profile.v1.schema.json`](src/transform/profile.v1.schema.json),
+a 1:1 mirror of the `Profile` type plus a `profileVersion: "1"` envelope)
+drives the engine byte-identically to a TypeScript profile. The package
+installs a `dspack-emit` bin, so out-of-repo contracts emit from any CI:
+
+```bash
+dspack-emit --in acme-ui.dspack.json --a2ui-version 0.9.1 --out out \
+  --profile acme.profile.json --emit-surface surfaces/status-report.dsurface.json
+```
+
+A malformed profile is refused before the engine runs (`ProfileLoadError`
+with pathed findings; CLI exit 2). `scaffoldProfile(doc, { catalogIdBase })`
+produces a mechanical 1:1 starting draft plus `notes` naming every judgment
+call it deliberately did not make — see
+[docs/PROFILES.md](docs/PROFILES.md). With `--profile` and no `--surface`,
+the repo-relative sample-surface default is skipped (gate A3 then covers
+`--emit-surface` output only).
+
 ### Versioned emitter (`--a2ui-version 0.9.1 | 1.0`)
 
 The mapper targets and validates the **v1.0** catalog schema as the primary line, and

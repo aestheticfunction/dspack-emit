@@ -131,6 +131,16 @@ class SurfaceEmitter {
   emitNode(node: SurfaceNode, path: string): string {
     const plan = this.byDspackId.get(node.component);
     if (!plan) {
+      // A declared casualty refuses with its authored reason — the refusal is
+      // the profile author's decision, and the message should say so.
+      const casualty = this.profile.casualtyComponents.find((c) => c.dspackId === node.component);
+      if (casualty) {
+        throw new EmitSurfaceError(
+          `component '${node.component}' is a declared casualty (${casualty.class}) of the ` +
+            `'${this.profile.catalogTitle}' profile: ${casualty.reason}`,
+          path,
+        );
+      }
       throw new EmitSurfaceError(
         `unknown component '${node.component}': not a mapped component of the '${this.profile.catalogTitle}' profile ` +
           `(sub-components are consumed by their compound parent and cannot be emitted standalone)`,
