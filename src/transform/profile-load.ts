@@ -12,11 +12,13 @@
  * convention as the catalog gates (src/validate/ajv.ts) and the dspack
  * harness.
  */
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import Ajv2020, { type ValidateFunction } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
+import { profileSchema } from "./profile-schema.js";
 import type { Profile } from "./profiles.js";
+
+/** The profile schema, as shipped (also exported for hosts that surface it in UI). */
+export { profileSchema } from "./profile-schema.js";
 
 export interface ProfileLoadIssue {
   /** JSON path into the offending document (ajv instancePath). */
@@ -37,11 +39,6 @@ export class ProfileLoadError extends Error {
     this.name = "ProfileLoadError";
   }
 }
-
-const schemaPath = fileURLToPath(new URL("./profile.v1.schema.json", import.meta.url));
-
-/** The profile schema, as shipped (also exported for hosts that surface it in UI). */
-export const profileSchema: Record<string, unknown> = JSON.parse(readFileSync(schemaPath, "utf8"));
 
 let compiled: ValidateFunction | undefined;
 

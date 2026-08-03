@@ -1,0 +1,382 @@
+/**
+ * Runtime mirror of profile.v1.schema.json. The .json file stays the
+ * reviewable schema document (docs/PROFILES.md links it); this constant
+ * exists because loadProfile must run in a browser bundle (dspack-studio
+ * composer), where readFileSync is not available. src/schema-mirrors.test.ts
+ * asserts mirror and JSON stay identical — edit both together.
+ */
+export const profileSchema: Record<string, unknown> = {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aestheticfunction.github.io/dspack-emit/schema/profile.v1.schema.json",
+  "title": "dspack-emit a2ui Profile v1",
+  "description": "JSON form of the a2ui target's mapping Profile. Mirrors the TypeScript Profile interface in src/transform/profiles.ts one to one; loadProfile() validates against this schema before the engine runs.",
+  "type": "object",
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "required": [
+    "profileVersion",
+    "catalogTitle",
+    "catalogDescription",
+    "catalogIdBase",
+    "instructions",
+    "primaryColorToken",
+    "components",
+    "synthesized",
+    "casualtyComponents",
+    "surfaceSynthesis"
+  ],
+  "properties": {
+    "profileVersion": {
+      "const": "1"
+    },
+    "catalogTitle": {
+      "type": "string",
+      "minLength": 1
+    },
+    "catalogDescription": {
+      "type": "string",
+      "minLength": 1
+    },
+    "catalogIdBase": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://"
+    },
+    "instructions": {
+      "type": "string"
+    },
+    "primaryColorToken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category",
+        "name"
+      ],
+      "properties": {
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/componentPlan"
+      }
+    },
+    "synthesized": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/componentPlan"
+      }
+    },
+    "casualtyComponents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "patternProperties": {
+          "^x-": {}
+        },
+        "required": [
+          "dspackId",
+          "attempted",
+          "class",
+          "reason"
+        ],
+        "properties": {
+          "dspackId": {
+            "$ref": "#/$defs/dspackId"
+          },
+          "attempted": {
+            "type": "string",
+            "minLength": 1
+          },
+          "class": {
+            "enum": [
+              "maps-cleanly",
+              "synthesis-defaults",
+              "lossy",
+              "cannot-represent"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "intentionallyOmitted": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dspackId"
+      }
+    },
+    "surfaceSynthesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "textComponent",
+        "textProp",
+        "wrapComponent",
+        "wrapChildrenProp"
+      ],
+      "properties": {
+        "textComponent": {
+          "$ref": "#/$defs/a2uiName"
+        },
+        "textProp": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wrapComponent": {
+          "$ref": "#/$defs/a2uiName"
+        },
+        "wrapChildrenProp": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "dspackId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "a2uiName": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*$"
+    },
+    "componentPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "required": [
+        "a2ui",
+        "commons",
+        "structural",
+        "required"
+      ],
+      "properties": {
+        "a2ui": {
+          "$ref": "#/$defs/a2uiName"
+        },
+        "dspackId": {
+          "$ref": "#/$defs/dspackId"
+        },
+        "description": {
+          "type": "string"
+        },
+        "commons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "structural": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schema",
+              "description",
+              "synthNote"
+            ],
+            "properties": {
+              "schema": {},
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "synthNote": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "propMap": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "a2ui",
+              "kind"
+            ],
+            "properties": {
+              "a2ui": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "enum": [
+                  "enum",
+                  "string",
+                  "boolean",
+                  "number"
+                ]
+              },
+              "targetEnum": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "valueMap": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "default": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "surfacePlan": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "subText": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "subButtonText": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "actionProp": {
+              "type": "string"
+            },
+            "textChildProp": {
+              "type": "string"
+            },
+            "textProp": {
+              "type": "string"
+            },
+            "childProp": {
+              "type": "string"
+            },
+            "childrenProp": {
+              "type": "string"
+            },
+            "structuralPassthrough": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "subTable": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "caption",
+                "header",
+                "headerCell",
+                "body",
+                "row",
+                "cell",
+                "targetCaption",
+                "targetColumns",
+                "targetRows",
+                "drops"
+              ],
+              "properties": {
+                "caption": {
+                  "type": "string"
+                },
+                "header": {
+                  "type": "string"
+                },
+                "headerCell": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string"
+                },
+                "row": {
+                  "type": "string"
+                },
+                "cell": {
+                  "type": "string"
+                },
+                "targetCaption": {
+                  "type": "string"
+                },
+                "targetColumns": {
+                  "type": "string"
+                },
+                "targetRows": {
+                  "type": "string"
+                },
+                "drops": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "subFlatten": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "transparent",
+                "asText"
+              ],
+              "properties": {
+                "transparent": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/dspackId"
+                  }
+                },
+                "asText": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "subCoverage": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+};

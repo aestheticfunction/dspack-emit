@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pack-and-install boundary test (PR-2 acceptance): the package must be
 # consumable exactly as published/git-dep'd — exports map only, no deep
-# imports, dist + meta files present in the tarball.
+# imports, dist self-contained (schemas compiled in, no runtime JSON reads).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
