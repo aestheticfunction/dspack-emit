@@ -13,8 +13,36 @@ touching the engine.
 
 ## Where your profile lives
 
-**In your own codebase, against the published package.** This is the normal
-path, and it is exactly how dspack-studio maps the Astryx contract:
+**In your own codebase, against the published package.** Two equivalent
+forms; pick per project:
+
+**As data (`*.profile.json`)** — the form authoring tools read and write. A
+JSON profile is validated at load time against
+[`profile.v1.schema.json`](../src/transform/profile.v1.schema.json) (a
+one-to-one mirror of the `Profile` interface plus a `profileVersion: "1"`
+envelope) and drives the engine byte-identically to the TypeScript form:
+
+```ts
+import { loadProfile, transform } from "@aestheticfunction/dspack-emit";
+
+const profile = loadProfile(JSON.parse(readFileSync("acme.profile.json", "utf8")));
+// throws ProfileLoadError with pathed issues if the document is malformed
+```
+
+From the CLI: `dspack-emit --in acme.dspack.json --profile acme.profile.json --out out`.
+To start from zero, `scaffoldProfile(doc, { catalogIdBase })` derives a
+mechanical 1:1 draft (verbatim prop projections, subFlatten from declared
+`acceptsChildren`, no valueMaps, no casualties) plus `notes` listing every
+judgment call left to you.
+
+The schema fails closed: unknown keys are refused everywhere, with one
+deliberate, dspack-conventional exception — `x-*` keys are accepted (and
+preserved by `loadProfile`) at the document, plan, and casualty levels, so
+authoring tools can carry provenance without a schema change. The engine
+never reads them.
+
+**As TypeScript** — the original form, and exactly how dspack-studio maps
+the Astryx contract:
 
 ```ts
 import type { Profile } from "@aestheticfunction/dspack-emit";

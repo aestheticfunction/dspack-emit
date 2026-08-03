@@ -1,11 +1,18 @@
-#!/usr/bin/env -S npx tsx
+#!/usr/bin/env node
 /**
- * dspack-emit CLI.
+ * dspack-emit CLI (also installed as the `dspack-emit` bin).
  *
  *   tsx src/cli.ts --in <dspack.json> --a2ui-version <0.9.1|1.0> --out <dir> [--surface <surface.json>]
- *                  [--emit-surface <surface.dsurface.json>]
+ *                  [--profile <profile.json>] [--emit-surface <surface.dsurface.json>]
  *   tsx src/cli.ts --target json-render --in <dspack.json> --out <dir>
  *                  [--emit-surface <surface.dsurface.json>]
+ *
+ * --profile loads a JSON mapping profile (validated against
+ * profile.v1.schema.json via loadProfile) instead of the built-in shadcn
+ * profile — the flag that makes out-of-repo contracts emittable from CI.
+ * When --profile is given and --surface is not, the sample-surface default
+ * (a repo-relative fixture) is skipped and gate A3 runs on --emit-surface
+ * output only.
  *
  * Default target (a2ui): emits a versioned A2UI catalog + a
  * validation/fidelity report. Exits non-zero if the hard gate (catalog schema
@@ -25,6 +32,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import type { A2uiVersion, DspackDoc, DspackSurface } from "./types.js";
 import { transform } from "./transform/index.js";
+import { shadcnProfile, type Profile } from "./transform/profiles.js";
+import { loadProfile, ProfileLoadError } from "./transform/profile-load.js";
 import { emitSurface, EmitSurfaceError } from "./targets/a2ui/surface.js";
 import { generateJsonRenderModules } from "./targets/json-render/codegen.js";
 import { emitJsonRenderSpec, EmitJsonRenderError, validateSpecAgainstModel } from "./targets/json-render/emit.js";
@@ -34,7 +43,8 @@ interface Args {
   in: string;
   version: A2uiVersion;
   out: string;
-  surface: string;
+  surface?: string;
+  profile?: string;
   emitSurface?: string;
   strictCoverage: boolean;
 }
@@ -73,12 +83,16 @@ function parseArgs(argv: string[]): Args {
   }
   const input = m.get("in");
   if (!input) fail("--in <dspack.json> is required");
+  const profile = m.get("profile");
   return {
     target,
     in: input!,
     version: (version ?? "0.9.1") as A2uiVersion,
     out: m.get("out") ?? "out",
-    surface: m.get("surface") ?? "surface/settings-card.surface.json",
+    // The sample-surface default is a repo-relative fixture; external callers
+    // (--profile) get a vacuous A3 unless they pass --surface/--emit-surface.
+    surface: m.get("surface") ?? (profile ? undefined : "surface/settings-card.surface.json"),
+    profile,
     emitSurface: m.get("emit-surface"),
     strictCoverage: m.get("strict-coverage") === "true",
   };
@@ -141,9 +155,21 @@ function main(): void {
     jsonRenderMain(args, doc);
     return;
   }
-  const surface = JSON.parse(readFileSync(resolve(args.surface), "utf8"));
+  let profile: Profile = shadcnProfile;
+  if (args.profile) {
+    try {
+      profile = loadProfile(JSON.parse(readFileSync(resolve(args.profile), "utf8")));
+    } catch (e) {
+      if (e instanceof ProfileLoadError) {
+        console.error(`error: --profile ${args.profile}: ${e.message}`);
+        process.exit(2);
+      }
+      throw e;
+    }
+  }
+  const surface = args.surface ? JSON.parse(readFileSync(resolve(args.surface), "utf8")) : { messages: [] };
 
-  const { catalog, mapping, validation, report } = transform(doc, args.version, surface);
+  const { catalog, mapping, validation, report } = transform(doc, args.version, surface, profile);
 
   mkdirSync(resolve(args.out), { recursive: true });
   const base = resolve(args.out);
@@ -169,7 +195,7 @@ function main(): void {
     const csr = JSON.parse(readFileSync(resolve(args.emitSurface), "utf8")) as DspackSurface;
     let emitted;
     try {
-      emitted = emitSurface(csr, doc);
+      emitted = emitSurface(csr, doc, { profile });
     } catch (e) {
       if (e instanceof EmitSurfaceError) {
         console.error(`${tag} EMIT-SURFACE FAILED: ${e.message}`);
@@ -183,7 +209,7 @@ function main(): void {
     for (const w of emitted.warnings) console.log(`${tag}   note  ${w.code}: ${w.message}`);
     // Gate A3 over the emitted surface: its instances must validate against the
     // catalog generated in this same run.
-    const check = transform(doc, args.version, { messages: emitted.messages });
+    const check = transform(doc, args.version, { messages: emitted.messages }, profile);
     const instanceGate = check.validation.gates.find((g) => g.name === "instance");
     console.log(`${tag} emitted surface -> ${outPath}`);
     console.log(`${tag}   ${instanceGate?.pass ? "PASS" : "FAIL"}  instance (emitted surface vs generated catalog)`);
