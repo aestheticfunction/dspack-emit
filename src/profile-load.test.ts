@@ -64,6 +64,22 @@ describe("loadProfile", () => {
     const { profileVersion: _dropped, ...bare } = shadcnProfileJson();
     expect(() => loadProfile(bare)).toThrowError(ProfileLoadError);
   });
+
+  it("fails closed on unknown keys — x-* is the only extension surface (dspack convention)", () => {
+    const topLevel = shadcnProfileJson() as Record<string, unknown>;
+    topLevel.customBehavior = true;
+    expect(() => loadProfile(topLevel)).toThrowError(ProfileLoadError);
+
+    const inPlan = shadcnProfileJson() as any;
+    inPlan.components[0].renderHint = "fancy";
+    expect(() => loadProfile(inPlan)).toThrowError(ProfileLoadError);
+
+    // The sanctioned extension slot passes and is preserved for tools.
+    const extended = shadcnProfileJson() as Record<string, unknown>;
+    extended["x-composer"] = { note: "authored in the studio composer" };
+    const profile = loadProfile(extended) as unknown as Record<string, unknown>;
+    expect(profile["x-composer"]).toEqual({ note: "authored in the studio composer" });
+  });
 });
 
 describe("casualty refusal cites the authored reason", () => {

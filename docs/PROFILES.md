@@ -35,6 +35,12 @@ mechanical 1:1 draft (verbatim prop projections, subFlatten from declared
 `acceptsChildren`, no valueMaps, no casualties) plus `notes` listing every
 judgment call left to you.
 
+The schema fails closed: unknown keys are refused everywhere, with one
+deliberate, dspack-conventional exception — `x-*` keys are accepted (and
+preserved by `loadProfile`) at the document, plan, and casualty levels, so
+authoring tools can carry provenance without a schema change. The engine
+never reads them.
+
 **As TypeScript** — the original form, and exactly how dspack-studio maps
 the Astryx contract:
 
