@@ -50,7 +50,7 @@ https://github.com/user-attachments/assets/510a781b-4214-49b3-b997-9cbecdc36961
 
 | Path | What |
 | --- | --- |
-| `input/shadcn-ui.dspack.json` | Example input: a dspack v0.4 contract from a React+Tailwind system (shadcn/ui). |
+| `input/shadcn-ui.dspack.json` | Example input: a dspack v0.4 contract from a React+Tailwind system (shadcn/ui). **Pinned to v2.3.0 (8 components) — not current shadcn coverage;** see [`docs/CONTRACT-PIN.md`](docs/CONTRACT-PIN.md). |
 | `src/` | The transformer: source-agnostic engine + data-only profile + versioned emitter + validator. |
 | `surface/settings-card.surface.json` | Hand-authored A2UI v0.9.1 surface instantiating the compiled components. |
 | `out/catalog.v0_9_1.json`, `out/catalog.v1_0.json` | Generated catalogs (no external `$ref`, versioned `catalogId`). |
