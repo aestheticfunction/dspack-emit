@@ -21,7 +21,7 @@
  * Reading this file top to bottom is also the v1 -> internal mapping table.
  */
 import type { ComponentPlan, SurfacePlanDirectives } from "./profiles.js";
-import { emptySurfaceModel, type Collect, type Route, type SurfaceModel } from "./model.js";
+import { emptySurfaceModel, WriteOrder, type Collect, type Route, type SurfaceModel } from "./model.js";
 
 /** Cache: a plan's model is derived once, not per emitted node. */
 const cache = new WeakMap<ComponentPlan, SurfaceModel>();
@@ -44,6 +44,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
   // routes in order with first-write-wins.
   for (const key of sp.structuralPassthrough ?? []) {
     route({
+      order: WriteOrder.Verbatim,
       from: [{ kind: "self-prop", prop: key }],
       to: { kind: "prop", name: key },
       origin: "structuralPassthrough",
@@ -58,7 +59,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
     bySubTextTarget.set(prop, [...(bySubTextTarget.get(prop) ?? []), sub]);
   }
   for (const [prop, subs] of bySubTextTarget) {
-    route({ from: [{ kind: "sub-text", subs }], to: { kind: "prop", name: prop }, origin: "subText" });
+    route({ order: WriteOrder.Consume, from: [{ kind: "sub-text", subs }], to: { kind: "prop", name: prop }, origin: "subText" });
   }
 
   // subButtonText: the label of a label-bearing component inside the sub, else
@@ -66,6 +67,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
   // selectors — the fallback that motivated Selector[].
   for (const [sub, prop] of Object.entries(sp.subButtonText ?? {})) {
     route({
+      order: WriteOrder.Consume,
       from: [
         { kind: "sub-label", subs: [sub] },
         { kind: "sub-text-lift", subs: [sub] },
@@ -81,6 +83,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
   if (sp.subTable) {
     const t = sp.subTable;
     route({
+      order: WriteOrder.CollectLead,
       from: [{ kind: "subtree-text", subs: [t.caption] }],
       to: { kind: "prop", name: t.targetCaption },
       origin: "subTable.caption",
@@ -88,9 +91,11 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
 
     /** A row's cells: one flat scalar list. A header-cell counts as a cell. */
     const cells = (origin: string): Collect => ({
+      order: WriteOrder.Collect,
       of: [t.row],
       as: { kind: "inline" },
       scalar: {
+        order: WriteOrder.Collect,
         from: [{ kind: "subtree-text", subs: [t.cell, t.headerCell] }],
         to: { kind: "prop", name: "cells" },
         origin,
@@ -101,6 +106,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
     // Header: every header row's cells concatenate into ONE flat column list —
     // v1 passes the same array to each header row, so two header rows append.
     model.collects.push({
+      order: WriteOrder.Collect,
       of: [t.header],
       as: { kind: "prop", name: t.targetColumns },
       item: { cells: cells("subTable.header") },
@@ -110,6 +116,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
     // Body: one record per row, its cells under the `cells` field. That field
     // name was a literal in the v1 emitter; here it is data.
     model.collects.push({
+      order: WriteOrder.Collect,
       of: [t.body],
       as: { kind: "prop", name: t.targetRows },
       item: { cells: cells("subTable.body") },
@@ -123,6 +130,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
   // consuming directive — v1's one asymmetry, kept explicit.
   if (sp.textProp) {
     route({
+      order: WriteOrder.SelfText,
       from: [{ kind: "self-text" }],
       to: { kind: "prop", name: sp.textProp },
       overwrite: true,
@@ -131,6 +139,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
   }
   if (sp.textChildProp) {
     route({
+      order: WriteOrder.SelfTextChild,
       from: [{ kind: "self-text" }],
       to: { kind: "text-child", name: sp.textChildProp },
       overwrite: true,
@@ -143,6 +152,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
   // prop those routes may have written when naming the event.
   if (sp.actionProp) {
     route({
+      order: WriteOrder.Action,
       from: [{ kind: "synthesized-action" }],
       to: { kind: "action", name: sp.actionProp },
       origin: "actionProp",
@@ -160,9 +170,9 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
 
   // childProp / childrenProp: children as instance references.
   if (sp.childrenProp) {
-    route({ from: [{ kind: "children" }], to: { kind: "slots", name: sp.childrenProp }, origin: "childrenProp" });
+    route({ order: WriteOrder.Children, from: [{ kind: "children" }], to: { kind: "slots", name: sp.childrenProp }, origin: "childrenProp" });
   } else if (sp.childProp) {
-    route({ from: [{ kind: "children" }], to: { kind: "slot", name: sp.childProp }, origin: "childProp" });
+    route({ order: WriteOrder.Children, from: [{ kind: "children" }], to: { kind: "slot", name: sp.childProp }, origin: "childProp" });
   }
 
   // Derived, never authored: a plan that absorbs its subtree into props does

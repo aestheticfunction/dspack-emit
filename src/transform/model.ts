@@ -106,8 +106,34 @@ export type Destination =
   /** An Action property. */
   | { kind: "action"; name: string };
 
+/**
+ * Legacy write order. The engine applies routes and collects sorted by this,
+ * never by declaration index or traversal happenstance — the same discipline
+ * the diagnostics use, applied to output. Object key order is observable
+ * (artifacts are hashed), so "when a route writes" is part of the contract and
+ * belongs in data rather than in the shape of a method.
+ */
+export enum WriteOrder {
+  /** Props copied verbatim into same-named destinations; wins over consumption. */
+  Verbatim = 10,
+  /** Sub-scoped consumption. Resolved by ONE document-order walk (see below). */
+  Consume = 20,
+  /** Repetition, and the caption-style routes that belong to the same strategy. */
+  CollectLead = 30,
+  Collect = 31,
+  /** The node's own text. */
+  SelfText = 40,
+  SelfTextChild = 41,
+  /** Synthesis with no source in the subtree. */
+  Action = 50,
+  /** Children as instance references, once every value destination is settled. */
+  Children = 60,
+}
+
 /** Moves one piece of information from a source to a destination. */
 export interface Route {
+  /** When this route writes, relative to every other route and collect. */
+  order: WriteOrder;
   /** Tried in order; the first that yields a value wins. */
   from: Selector[];
   to: Destination;
@@ -129,6 +155,8 @@ export interface Route {
  * grammar.
  */
 export interface Collect {
+  /** When this collect writes, relative to every other route and collect. */
+  order: WriteOrder;
   /** Descendant components that open one repetition. */
   of: string[];
   /** Array-valued destination, or `inline` when nested into a parent's field. */
