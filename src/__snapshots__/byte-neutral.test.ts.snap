@@ -1,0 +1,66 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`every v1 surface-plan directive is byte-pinned > childProp with >1 children (synthesized Column wrap) 1`] = `
+{
+  "messages": "8b8cab6d6a82a062",
+  "warnings": "e7ecf1c3b9ae9c67",
+}
+`;
+
+exports[`every v1 surface-plan directive is byte-pinned > id deduplication (two nodes claiming one id) 1`] = `
+{
+  "messages": "84c3037cea1b345f",
+  "warnings": "2388dab748ca28c0",
+}
+`;
+
+exports[`every v1 surface-plan directive is byte-pinned > subFlatten.transparent + asText (card sub-family) 1`] = `
+{
+  "messages": "21c9f2503a3c6804",
+  "warnings": "9a339e10a151128b",
+}
+`;
+
+exports[`every v1 surface-plan directive is byte-pinned > subTable (table sub-family, header + body + caption) 1`] = `
+{
+  "messages": "de1e3b6ace2afe42",
+  "warnings": "ac28b69e6cc4143b",
+}
+`;
+
+exports[`every v1 surface-plan directive is byte-pinned > subText + subButtonText + actionProp (alert-dialog) 1`] = `
+{
+  "messages": "d8a53f6c7f146d20",
+  "warnings": "374a173b5dac258b",
+}
+`;
+
+exports[`every v1 surface-plan directive is byte-pinned > textChildProp + actionProp (button) 1`] = `
+{
+  "messages": "d9112d8d356f5490",
+  "warnings": "9100e3b4d5c37463",
+}
+`;
+
+exports[`every v1 surface-plan directive is byte-pinned > textProp (input, badge) 1`] = `
+{
+  "messages": "198c8534091323c8",
+  "warnings": "3268fc387e176c20",
+}
+`;
+
+exports[`surface emission is byte-stable > ex.delete-account-confirmation — messages and warnings 1`] = `
+{
+  "id": "ex.delete-account-confirmation",
+  "messages": "f56b32c2b3b41df5",
+  "warnings": "fe908f24a7685bc7",
+}
+`;
+
+exports[`surface emission is byte-stable > ex.support-ticket-queue — messages and warnings 1`] = `
+{
+  "id": "ex.support-ticket-queue",
+  "messages": "4545981a34db4240",
+  "warnings": "5c4de60aeae6c75a",
+}
+`;
