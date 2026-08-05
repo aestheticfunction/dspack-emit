@@ -238,18 +238,15 @@ class SurfaceEmitter {
   }
 
   /**
-   * Compound flattening: pull text out of named sub-components anywhere in the
-   * subtree. The subtree is consumed — the documented composition casualty.
-   */
-  /**
    * Refuse when a consumed subtree contains a component the profile declared a
    * casualty. Consumption is how compounds fold their parts into props; it is
    * NOT an escape hatch around an author's "this cannot be represented".
    * Fail-closed and loud, with the authored reason, exactly like the direct
-   * emission path.
+   * emission path — including the offending node's own path, so the refusal
+   * points at the casualty rather than at the parent that would have eaten it.
    */
   private refuseConsumedCasualty(node: SurfaceNode, path: string): void {
-    const walk = (n: SurfaceNode): void => {
+    const walk = (n: SurfaceNode, nodePath: string): void => {
       if (n !== node) {
         const casualty = this.profile.casualtyComponents.find((c) => c.dspackId === n.component);
         if (casualty && !this.byDspackId.has(n.component)) {
@@ -257,15 +254,19 @@ class SurfaceEmitter {
             `component '${n.component}' is a declared casualty (${casualty.class}) of the ` +
               `'${this.profile.catalogTitle}' profile and cannot be consumed into ` +
               `'${node.component}': ${casualty.reason}`,
-            path,
+            nodePath,
           );
         }
       }
-      for (const child of collectChildren(n)) walk(child.node);
+      collectChildren(n).forEach((child, i) => walk(child.node, `${nodePath}${child.suffix}[${i}]`));
     };
-    walk(node);
+    walk(node, path);
   }
 
+  /**
+   * Compound flattening: pull text out of named sub-components anywhere in the
+   * subtree. The subtree is consumed — the documented composition casualty.
+   */
   private applySubContent(
     node: SurfaceNode,
     subText: Record<string, string>,

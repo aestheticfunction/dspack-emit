@@ -145,6 +145,9 @@ describe("a declared casualty cannot be consumed into a parent", () => {
       expect(msg).toContain("declared casualty");
       expect(msg).toContain("cannot be consumed into");
       expect(msg).toContain("dropdown menu"); // the authored reason survives
+      // The refusal points at the casualty itself, not at the parent that
+      // would have consumed it — same locating precision as direct emission.
+      expect((e as EmitSurfaceError).path).toBe("$.root.children[0]");
     }
   });
 
