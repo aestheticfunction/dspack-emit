@@ -103,6 +103,66 @@ describe("casualty refusal cites the authored reason", () => {
   });
 });
 
+describe("a declared casualty cannot be consumed into a parent", () => {
+  /**
+   * The plan-lookup gate refuses a casualty emitted as its OWN node. A
+   * consuming strategy (subText / subButtonText / subTable / subFlatten)
+   * walks the subtree directly, so without an equivalent gate an author
+   * could fold a casualty's text into a parent prop and the authored
+   * refusal would vanish behind a warning. Consumption is how compounds
+   * carry their parts — never an escape hatch around "cannot represent".
+   */
+  it("refuses a casualty folded in by a parent's subText, citing the authored reason", () => {
+    const withFold = {
+      ...shadcnProfile,
+      components: shadcnProfile.components.map((plan) =>
+        plan.dspackId === "card"
+          ? {
+              ...plan,
+              surfacePlan: {
+                ...(plan.surfacePlan ?? {}),
+                subText: { ...(plan.surfacePlan?.subText ?? {}), "dropdown-menu": "title" },
+              },
+            }
+          : plan,
+      ),
+    };
+    const surface: DspackSurface = {
+      dspackSurface: "0.1",
+      system: shadcnDoc.name as string,
+      intent: "record-collection",
+      root: {
+        component: "card",
+        children: [{ component: "dropdown-menu", text: "Row actions" }],
+      },
+    } as DspackSurface;
+    try {
+      emitSurface(surface, shadcnDoc, { profile: withFold });
+      expect.unreachable("a consumed casualty must refuse, not fold silently");
+    } catch (e) {
+      expect(e).toBeInstanceOf(EmitSurfaceError);
+      const msg = (e as EmitSurfaceError).message;
+      expect(msg).toContain("declared casualty");
+      expect(msg).toContain("cannot be consumed into");
+      expect(msg).toContain("dropdown menu"); // the authored reason survives
+    }
+  });
+
+  it("still consumes ordinary sub-components (the gate is casualty-scoped)", () => {
+    const surface: DspackSurface = {
+      dspackSurface: "0.1",
+      system: shadcnDoc.name as string,
+      intent: "record-collection",
+      root: {
+        component: "card",
+        children: [{ component: "card-header", children: [{ component: "card-title", text: "Members" }] }],
+      },
+    } as DspackSurface;
+    const result = emitSurface(surface, shadcnDoc, { profile: shadcnProfile });
+    expect(JSON.stringify(result.messages)).toContain("Members");
+  });
+});
+
 describe("scaffoldProfile", () => {
   it("produces a loadProfile-valid profile from a bare contract", () => {
     const { profile } = scaffoldProfile(astryxDoc, {

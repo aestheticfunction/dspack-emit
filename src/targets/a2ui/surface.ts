@@ -166,6 +166,13 @@ class SurfaceEmitter {
         if (value !== undefined) instance[key] = value as Json[keyof Json];
       }
     }
+    // A declared casualty is an authored refusal: it must never be laundered
+    // into a parent's text fold. The plan-lookup gate above only fires when a
+    // casualty is emitted as its OWN node; a consuming strategy (subText,
+    // subButtonText, subTable, subFlatten) walks the subtree directly and
+    // would otherwise fold the casualty's text in with a mere warning.
+    if (consumesSubtree || sp.subFlatten) this.refuseConsumedCasualty(node, path);
+
     if (sp.subText || sp.subButtonText) this.applySubContent(node, sp.subText ?? {}, sp.subButtonText ?? {}, instance, path);
     if (sp.subTable) this.applySubTable(node, sp.subTable, instance, path);
     if (sp.textProp && node.text !== undefined) instance[sp.textProp] = node.text;
@@ -234,6 +241,31 @@ class SurfaceEmitter {
    * Compound flattening: pull text out of named sub-components anywhere in the
    * subtree. The subtree is consumed — the documented composition casualty.
    */
+  /**
+   * Refuse when a consumed subtree contains a component the profile declared a
+   * casualty. Consumption is how compounds fold their parts into props; it is
+   * NOT an escape hatch around an author's "this cannot be represented".
+   * Fail-closed and loud, with the authored reason, exactly like the direct
+   * emission path.
+   */
+  private refuseConsumedCasualty(node: SurfaceNode, path: string): void {
+    const walk = (n: SurfaceNode): void => {
+      if (n !== node) {
+        const casualty = this.profile.casualtyComponents.find((c) => c.dspackId === n.component);
+        if (casualty && !this.byDspackId.has(n.component)) {
+          throw new EmitSurfaceError(
+            `component '${n.component}' is a declared casualty (${casualty.class}) of the ` +
+              `'${this.profile.catalogTitle}' profile and cannot be consumed into ` +
+              `'${node.component}': ${casualty.reason}`,
+            path,
+          );
+        }
+      }
+      for (const child of collectChildren(n)) walk(child.node);
+    };
+    walk(node);
+  }
+
   private applySubContent(
     node: SurfaceNode,
     subText: Record<string, string>,
