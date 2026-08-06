@@ -255,3 +255,58 @@ children/text routes only where the contract's worked examples show them, and
 every sub-component surfaced as an explicit unresolved decision that
 transform refuses until you make it. The refusal is the point — it is your
 work checklist, not an error to silence.
+
+## The transformation ledger and `--strict-surface`
+
+Every emission returns `fidelity` alongside the byte-frozen `messages` and
+`warnings`: one entry per transformation, carrying the source path and
+selector, the destination (or `"(discarded)"`), the originating profile rule,
+the kind (`projected / moved / lifted / flattened / synthesized / wrapped /
+dropped / deduplicated`), and a class from the shared taxonomy
+(`maps-cleanly / synthesis-defaults / lossy / cannot-represent`).
+
+Four outcomes stay distinguishable, by construction:
+
+| outcome | how it reads |
+|---|---|
+| emitted cleanly | messages present; no `lossy`/`cannot-represent` entries |
+| emitted with loss | messages present; the losses are named in `fidelity` |
+| refused | `EmitSurfaceError` / `ProfileContractError` — nothing emitted |
+| strict-failed | `--strict-surface` exit 5; the emitted artifact is still written and is **byte-identical** to the non-strict run |
+
+`--strict-surface` never alters emitted content — it only decides whether
+configured fidelity classes are acceptable. Bare, it fails `lossy` and
+`cannot-represent`; `--strict-surface=lossy,synthesis-defaults` tightens it;
+an unknown class is a usage error. Without the flag the ledger still prints:
+loss is never invisible, the flag only makes it fatal.
+
+## Ordering doctrine
+
+Route and diagnostic ordering are **explicit** because object-key order and
+warning order are observable in deterministic artifacts. A route's write
+phase is derived from what it reads (never authored, never declaration
+position); diagnostics and fidelity sort by declared `(path, band, phase,
+rule)` keys. Compatibility goldens must never be re-baselined merely because
+an internal refactor changes incidental execution sequence — a moved digest
+is either a regression to fix or an intentional change explained at the pin,
+in the same commit.
+
+## The consuming-traversal rule
+
+Compound-consuming routes resolve in **document order as one traversal**:
+sibling tree position, not route declaration order, determines which node
+claims a destination. This is what consuming a compound *means* — an
+alert-dialog writes `triggerLabel` before `title` because the trigger
+precedes the content, and it would keep doing so if the routes were declared
+in the opposite order. Declaration order among consuming routes affects only
+the deterministic tie-break of diagnostics, never the values.
+
+## `x-scaffold.unresolved`
+
+Scaffolds may infer mechanical structure from evidence (worked examples,
+declared sub-components) and must surface everything else as questions —
+never inventing governance, casualties, joins, donation, or semantic intent.
+A scaffolded v2 profile lists every undecided sub-component under
+`x-scaffold.unresolved`; the same set is what makes `transform()` refuse,
+per sub, until you decide. A scaffold that refuses with a precise unresolved
+checklist is preferable to one that emits by guessing.
