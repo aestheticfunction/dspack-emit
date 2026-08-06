@@ -21,16 +21,22 @@
  * Reading this file top to bottom is also the v1 -> internal mapping table.
  */
 import type { ComponentPlan, SurfacePlanDirectives } from "./profiles.js";
+import { parseSurfaceV2 } from "./parse-v2.js";
 import { emptySurfaceModel, WriteOrder, type Collect, type Route, type SurfaceModel } from "./model.js";
 
 /** Cache: a plan's model is derived once, not per emitted node. */
 const cache = new WeakMap<ComponentPlan, SurfaceModel>();
 
-/** The internal model for a plan, desugared from its v1 directives. */
+/**
+ * The internal model for a plan, whichever language it is written in: a v2
+ * `surface` block parses directly; v1 directives desugar. Both languages meet
+ * the engine only as this model — the engine cannot tell them apart, which is
+ * the compatibility guarantee.
+ */
 export function surfaceModelOf(plan: ComponentPlan): SurfaceModel {
   const hit = cache.get(plan);
   if (hit) return hit;
-  const model = desugar(plan.surfacePlan ?? {});
+  const model = plan.surface ? parseSurfaceV2(plan.surface, plan, "/surface") : desugar(plan.surfacePlan ?? {});
   cache.set(plan, model);
   return model;
 }
@@ -92,6 +98,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
     /** A row's cells: one flat scalar list. A header-cell counts as a cell. */
     const cells = (origin: string): Collect => ({
       order: WriteOrder.Collect,
+      flatten: false,
       of: [t.row],
       as: { kind: "inline" },
       scalar: {
@@ -107,6 +114,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
     // v1 passes the same array to each header row, so two header rows append.
     model.collects.push({
       order: WriteOrder.Collect,
+      flatten: true,
       of: [t.header],
       as: { kind: "prop", name: t.targetColumns },
       item: { cells: cells("subTable.header") },
@@ -117,6 +125,7 @@ export function desugar(sp: SurfacePlanDirectives): SurfaceModel {
     // name was a literal in the v1 emitter; here it is data.
     model.collects.push({
       order: WriteOrder.Collect,
+      flatten: false,
       of: [t.body],
       as: { kind: "prop", name: t.targetRows },
       item: { cells: cells("subTable.body") },

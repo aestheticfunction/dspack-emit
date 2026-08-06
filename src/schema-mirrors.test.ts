@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { catalogMetaSchemas } from "./validate/meta/catalog-meta.js";
 import { profileSchema } from "./transform/profile-schema.js";
+import { profileSchemaV2 } from "./transform/profile-schema-v2.js";
 
 const doc = (rel: string): unknown =>
   JSON.parse(readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8"));
@@ -26,5 +27,9 @@ describe("schema mirrors", () => {
 
   it("profile-schema mirror equals profile.v1.schema.json", () => {
     expect(profileSchema).toStrictEqual(doc("./transform/profile.v1.schema.json"));
+  });
+
+  it("profile-schema-v2 mirror equals profile.v2.schema.json", () => {
+    expect(profileSchemaV2).toStrictEqual(doc("./transform/profile.v2.schema.json"));
   });
 });

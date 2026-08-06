@@ -157,6 +157,13 @@ export interface Route {
 export interface Collect {
   /** When this collect writes, relative to every other route and collect. */
   order: WriteOrder;
+  /**
+   * True when every repetition's cells concatenate into ONE flat list (v1's
+   * header semantics: two header rows append into a single column list);
+   * false when each repetition becomes its own record. Declared data — the
+   * engine must never infer this from names or origins.
+   */
+  flatten: boolean;
   /** Descendant components that open one repetition. */
   of: string[];
   /** Array-valued destination, or `inline` when nested into a parent's field. */

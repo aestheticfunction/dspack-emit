@@ -620,7 +620,7 @@ class SurfaceEmitter {
 
   /** True when a collect writes one flat list rather than one record per repetition. */
   private isFlatTarget(collect: Collect): boolean {
-    return collect.origin.endsWith(".header");
+    return collect.flatten;
   }
 
   /** True when some route already consumes this component's text. */
@@ -644,14 +644,6 @@ class SurfaceEmitter {
       const subs = (field.scalar!.from[0] as { subs: string[] }).subs;
       if (subs.includes(c)) {
         cells.push(this.cellText(child.node, `${rowPath}${child.suffix}`, treePath, rule));
-      } else if (field.origin && this.dropReason(field, c)) {
-        this.diagnostics.push(
-          { code: "surface-sub-dropped", message: `${rowPath}: '${c}' dropped: ${this.dropReason(field, c)}.` },
-          treePath,
-          Band.BeforeChildren,
-          Phase.TableBody,
-          rule,
-        );
       } else {
         this.diagnostics.push(
           {
@@ -666,10 +658,6 @@ class SurfaceEmitter {
       }
     }
     return cells;
-  }
-
-  private dropReason(_field: Collect, _component: string): string | undefined {
-    return undefined;
   }
 
   private cellText(cell: SurfaceNode, cellPath: string, treePath: readonly number[], rule: number): string {
