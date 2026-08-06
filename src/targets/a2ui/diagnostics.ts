@@ -21,7 +21,7 @@
  * point in `emitNode` where that warning was pushed. They are numbered in that
  * method's execution order, and the numbering is the compatibility contract.
  */
-import type { Warning } from "../../types.js";
+import type { SurfaceFidelityEntry, Warning } from "../../types.js";
 
 /**
  * Legacy emission phases, in v1 `emitNode` execution order.
@@ -98,6 +98,7 @@ export function compareKeys(a: number[], b: number[]): number {
  */
 export class Diagnostics {
   private readonly items: Diagnostic[] = [];
+  private readonly fidelityItems: Array<{ entry: SurfaceFidelityEntry; key: number[] }> = [];
   private seq = 0;
 
   /**
@@ -114,6 +115,19 @@ export class Diagnostics {
   /** Legacy-ordered warnings. Sorting once at the end is the whole point. */
   ordered(): Warning[] {
     return [...this.items].sort((a, b) => compareKeys(a.key, b.key)).map((d) => d.warning);
+  }
+
+  /**
+   * The fidelity ledger rides the same ordering discipline as the warnings —
+   * an entry's position is declared by (path, band, phase, rule), never by
+   * when the engine happened to record it.
+   */
+  pushFidelity(entry: SurfaceFidelityEntry, path: readonly number[], band: Band, phase: Phase, rule = 0): void {
+    this.fidelityItems.push({ entry, key: [...path, band, phase, rule, this.seq++] });
+  }
+
+  orderedFidelity(): SurfaceFidelityEntry[] {
+    return [...this.fidelityItems].sort((a, b) => compareKeys(a.key, b.key)).map((d) => d.entry);
   }
 
   get length(): number {

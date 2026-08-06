@@ -38,14 +38,14 @@
  *    are version-independent and instance-validate (gate A3) against both
  *    generated catalogs.
  */
-import type { DspackDoc, DspackSurface, Json, SurfaceNode, Warning } from "../../types.js";
+import type { DspackDoc, DspackSurface, Json, SurfaceFidelityEntry, SurfaceNode, Warning } from "../../types.js";
 import { shadcnProfile, type ComponentPlan, type Profile } from "../../transform/profiles.js";
 import { toHex6 } from "../../transform/color.js";
 import { collectChildren } from "../csr.js";
 import { Band, Diagnostics, Phase } from "./diagnostics.js";
 import { surfaceModelOf } from "../../transform/desugar.js";
 import { validateProfileAgainstContract } from "../../transform/validate-v2.js";
-import { isCollect, WriteOrder, type Collect, type Route, type Selector, type SurfaceModel } from "../../transform/model.js";
+import { describeSelector, isCollect, WriteOrder, type Collect, type Route, type Selector, type SurfaceModel } from "../../transform/model.js";
 
 export class EmitSurfaceError extends Error {
   constructor(
@@ -62,6 +62,13 @@ export interface EmitSurfaceResult {
   messages: Json[];
   /** Every synthesis/drop performed — nothing is silent. */
   warnings: Warning[];
+  /**
+   * The transformation ledger: what every route, collect, projection, and
+   * synthesis DID to this surface — source, destination, originating profile
+   * rule, kind, and fidelity class. Additive alongside the byte-frozen
+   * messages and warnings; `--strict-surface` fails on configured classes.
+   */
+  fidelity: SurfaceFidelityEntry[];
 }
 
 export interface EmitSurfaceOptions {
@@ -121,7 +128,7 @@ export function emitSurface(
     },
   ];
   void rootId; // root is components[0] by construction (pre-order emission)
-  return { messages, warnings: emitter.diagnostics.ordered() };
+  return { messages, warnings: emitter.diagnostics.ordered(), fidelity: emitter.diagnostics.orderedFidelity() };
 }
 
 function primaryColor(doc: DspackDoc, profile: Profile): string | null {
@@ -268,17 +275,38 @@ class SurfaceEmitter {
     path: string,
     treePath: readonly number[],
   ): void {
-    const visit = (n: SurfaceNode, insideSubs: ReadonlySet<string>): void => {
-      for (const { route } of consuming) {
+    const record = (route: Route, rule: number, nPath: string, component: string): void => {
+      this.diagnostics.pushFidelity(
+        {
+          source: `${nPath} (${component}.text)`,
+          destination: route.to.name,
+          origin: route.origin,
+          kind: "moved",
+          class: "maps-cleanly",
+        },
+        treePath,
+        Band.BeforeChildren,
+        Phase.SubContentFlatten,
+        rule,
+      );
+    };
+    const visit = (n: SurfaceNode, nPath: string, insideSubs: ReadonlySet<string>): void => {
+      for (const { route, rule } of consuming) {
         if (instance[route.to.name] !== undefined) continue;
         const primary = route.from[0];
         if (primary.kind === "sub-text") {
-          if (primary.subs.includes(n.component) && n.text !== undefined) instance[route.to.name] = n.text;
+          if (primary.subs.includes(n.component) && n.text !== undefined) {
+            instance[route.to.name] = n.text;
+            record(route, rule, nPath, n.component);
+          }
         } else if (primary.kind === "sub-label") {
           if (n !== node && n.text !== undefined && primary.subs.some((sub) => insideSubs.has(sub))) {
             const plan = this.byDspackId.get(n.component);
             const bearsLabel = plan !== undefined && surfaceModelOf(plan).routes.some((r) => r.to.kind === "text-child");
-            if (bearsLabel) instance[route.to.name] = n.text;
+            if (bearsLabel) {
+              instance[route.to.name] = n.text;
+              record(route, rule, nPath, n.component);
+            }
           }
         }
       }
@@ -287,9 +315,9 @@ class SurfaceEmitter {
         const primary = route.from[0];
         if (primary.kind === "sub-label" && primary.subs.includes(n.component)) next.add(n.component);
       }
-      for (const child of collectChildren(n)) visit(child.node, next);
+      collectChildren(n).forEach((child, i) => visit(child.node, `${nPath}${child.suffix}[${i}]`, next));
     };
-    visit(node, new Set());
+    visit(node, path, new Set());
 
     for (const { route, rule } of consuming) {
       if (instance[route.to.name] !== undefined) continue;
@@ -297,6 +325,20 @@ class SurfaceEmitter {
         const found = this.resolve(node, selector, path, treePath, rule, route);
         if (found !== undefined) {
           instance[route.to.name] = found as Json[keyof Json];
+          this.diagnostics.pushFidelity(
+            {
+              source: `${path} (fallback)`,
+              destination: route.to.name,
+              origin: route.origin,
+              kind: selector.kind === "sub-text-lift" ? "lifted" : "moved",
+              class: "maps-cleanly",
+              note: selector.kind === "sub-text-lift" ? "audited lift: relocation of existing text, never synthesis" : undefined,
+            },
+            treePath,
+            Band.BeforeChildren,
+            Phase.LabelLift,
+            rule,
+          );
           break;
         }
       }
@@ -306,6 +348,19 @@ class SurfaceEmitter {
       {
         code: "surface-composition-flattened",
         message: `${path}: compound '${node.component}' subtree flattened onto emitted props (documented casualty; nested props beyond text are not carried).`,
+      },
+      treePath,
+      Band.BeforeChildren,
+      Phase.SubContentFlatten,
+    );
+    this.diagnostics.pushFidelity(
+      {
+        source: `${path} (${node.component} subtree)`,
+        destination: "(props of this instance)",
+        origin: consuming.map(({ route }) => route.origin).join(", "),
+        kind: "flattened",
+        class: "lossy",
+        note: "compound composition consumed into props; structure and nested props beyond text are not carried",
       },
       treePath,
       Band.BeforeChildren,
@@ -335,6 +390,20 @@ class SurfaceEmitter {
       if (selector.kind === "synthesized-action") {
         const eventName = slug(node.id ?? (instance.confirmLabel as string) ?? node.text ?? node.component);
         this.write(instance, route.to.name, { event: { name: eventName, context: {} } } as Json[keyof Json], route.overwrite);
+        this.diagnostics.pushFidelity(
+          {
+            source: "(no source: A2UI requires a declarative action)",
+            destination: route.to.name,
+            origin: route.origin,
+            kind: "synthesized",
+            class: "synthesis-defaults",
+            note: `event name '${eventName}' derived from the node's id/label/component slug`,
+          },
+          treePath,
+          Band.BeforeChildren,
+          Phase.Action,
+          rule,
+        );
         this.diagnostics.push(
           {
             code: "surface-synthesized-action",
@@ -360,6 +429,19 @@ class SurfaceEmitter {
         );
       } else {
         this.write(instance, route.to.name, found as Json[keyof Json], route.overwrite);
+        this.diagnostics.pushFidelity(
+          {
+            source: `${path} (${describeSelector(selector)})`,
+            destination: route.to.name,
+            origin: route.origin,
+            kind: selector.kind === "self-prop" ? "projected" : "moved",
+            class: "maps-cleanly",
+          },
+          treePath,
+          Band.BeforeChildren,
+          selector.kind === "self-prop" ? Phase.PropMap : Phase.TextChild,
+          rule,
+        );
       }
       return; // ordered fallback: the first selector that yields wins
     }
@@ -482,9 +564,16 @@ class SurfaceEmitter {
           Band.BeforeChildren,
           Phase.PropMap,
         );
+        this.diagnostics.pushFidelity(
+          { source: `${path} (props.${prop})`, destination: "(discarded)", origin: `propMap.${prop}`, kind: "dropped", class: "lossy", note: "no A2UI projection" },
+          treePath,
+          Band.BeforeChildren,
+          Phase.PropMap,
+        );
         continue;
       }
-      const value = pp.valueMap ? (pp.valueMap[String(raw)] ?? pp.default) : raw;
+      const mapped = pp.valueMap ? pp.valueMap[String(raw)] : undefined;
+      const value = pp.valueMap ? (mapped ?? pp.default) : raw;
       if (value === undefined) {
         this.diagnostics.push(
           {
@@ -495,9 +584,28 @@ class SurfaceEmitter {
           Band.BeforeChildren,
           Phase.PropMap,
         );
+        this.diagnostics.pushFidelity(
+          { source: `${path} (props.${prop}='${String(raw)}')`, destination: "(discarded)", origin: `propMap.${prop}`, kind: "dropped", class: "lossy", note: "value has no projection and no default" },
+          treePath,
+          Band.BeforeChildren,
+          Phase.PropMap,
+        );
         continue;
       }
       instance[pp.a2ui] = value as Json[keyof Json];
+      this.diagnostics.pushFidelity(
+        {
+          source: `${path} (props.${prop})`,
+          destination: pp.a2ui,
+          origin: `propMap.${prop}`,
+          kind: "projected",
+          class: pp.valueMap && mapped === undefined ? "synthesis-defaults" : "maps-cleanly",
+          note: pp.valueMap && mapped === undefined ? `value '${String(raw)}' fell back to the declared default '${String(pp.default)}'` : undefined,
+        },
+        treePath,
+        Band.BeforeChildren,
+        Phase.PropMap,
+      );
     }
   }
 
@@ -571,6 +679,13 @@ class SurfaceEmitter {
             Phase.TableBody,
             rule,
           );
+          this.diagnostics.pushFidelity(
+            { source: `${childPath} (${inner.node.component})`, destination: "(discarded)", origin: collect.origin, kind: "dropped", class: "lossy", note: "no slot inside the collected repetition" },
+            treePath,
+            Band.BeforeChildren,
+            Phase.TableBody,
+            rule,
+          );
           continue;
         }
         const cells = this.collectRow(inner.node, scalarField, `${childPath}${inner.suffix}`, treePath, rule);
@@ -580,7 +695,25 @@ class SurfaceEmitter {
     }
 
     const value = this.isFlatTarget(collect) ? flat : out;
-    if (value.length > 0) this.write(instance, collect.as.name, value as Json[keyof Json]);
+    if (value.length > 0) {
+      this.write(instance, collect.as.name, value as Json[keyof Json]);
+      this.diagnostics.pushFidelity(
+        {
+          source: `${path} (${collect.of.join("|")} repetitions)`,
+          destination: collect.as.name,
+          origin: collect.origin,
+          kind: "moved",
+          class: "maps-cleanly",
+          note: this.isFlatTarget(collect)
+            ? `${flat.length} cell(s) collected into one flat list`
+            : `${out.length} record(s) collected`,
+        },
+        treePath,
+        Band.BeforeChildren,
+        Phase.TableBody,
+        rule,
+      );
+    }
   }
 
   /**
@@ -611,12 +744,38 @@ class SurfaceEmitter {
         Band.BeforeChildren,
         Phase.TableBody,
       );
+      this.diagnostics.pushFidelity(
+        {
+          source: `${childPath} (${c})`,
+          destination: "(discarded)",
+          origin: reason ? `drops.${c}` : "collect",
+          kind: "dropped",
+          class: "lossy",
+          note: reason ?? "no slot in the collected shape",
+        },
+        treePath,
+        Band.BeforeChildren,
+        Phase.TableBody,
+      );
     }
 
     this.diagnostics.push(
       {
         code: "surface-composition-flattened",
         message: `${path}: compound '${node.component}' subtree consumed into the synthesized table shape (documented casualty; cell content beyond text is not carried).`,
+      },
+      treePath,
+      Band.BeforeChildren,
+      Phase.TableFlatten,
+    );
+    this.diagnostics.pushFidelity(
+      {
+        source: `${path} (${node.component} subtree)`,
+        destination: "(collected props)",
+        origin: model.collects.map((c) => c.origin).join(", "),
+        kind: "flattened",
+        class: "lossy",
+        note: "compound consumed into the collected shape; cell content beyond text is not carried",
       },
       treePath,
       Band.BeforeChildren,
@@ -661,6 +820,13 @@ class SurfaceEmitter {
           Phase.TableBody,
           rule,
         );
+        this.diagnostics.pushFidelity(
+          { source: `${rowPath} (${c})`, destination: "(discarded)", origin: field.origin, kind: "dropped", class: "lossy", note: "no slot in a collected row; its text is not lifted" },
+          treePath,
+          Band.BeforeChildren,
+          Phase.TableBody,
+          rule,
+        );
       }
     }
     return cells;
@@ -676,6 +842,13 @@ class SurfaceEmitter {
           code: "surface-table-cell-flattened",
           message: `${cellPath}: nested ${names} flattened to cell text; component structure and props are not carried by the synthesized table shape.`,
         },
+        treePath,
+        Band.BeforeChildren,
+        Phase.TableBody,
+        rule,
+      );
+      this.diagnostics.pushFidelity(
+        { source: `${cellPath} (nested ${names})`, destination: "(cell text)", origin: "collect cell", kind: "flattened", class: "lossy", note: "component structure and props inside the cell are not carried" },
         treePath,
         Band.BeforeChildren,
         Phase.TableBody,
@@ -751,6 +924,12 @@ class SurfaceEmitter {
           Band.BeforeChildren,
           Phase.ChildRewrite,
         );
+        this.diagnostics.pushFidelity(
+          { source: `${path} (${n.component})`, destination: "(children rise in place)", origin: `subs.${n.component}`, kind: "flattened", class: "lossy", note: "transparent grouping dissolved; its own structure is not carried" },
+          treePath,
+          Band.BeforeChildren,
+          Phase.ChildRewrite,
+        );
         if (n.text !== undefined && n.text !== "") out.push({ text: n.text, textVariant: "body" });
         for (const child of collectChildren(n)) visit(child.node, child.suffix);
         return;
@@ -762,6 +941,12 @@ class SurfaceEmitter {
         } else {
           this.diagnostics.push(
             { code: "surface-sub-dropped", message: `${path}: '${n.component}' carried no text to synthesize; dropped.` },
+            treePath,
+            Band.BeforeChildren,
+            Phase.ChildRewrite,
+          );
+          this.diagnostics.pushFidelity(
+            { source: `${path} (${n.component})`, destination: "(discarded)", origin: `subs.${n.component}`, kind: "dropped", class: "lossy", note: "re-identified as text but carried none" },
             treePath,
             Band.BeforeChildren,
             Phase.ChildRewrite,
@@ -799,6 +984,13 @@ class SurfaceEmitter {
       phase,
       rule,
     );
+    this.diagnostics.pushFidelity(
+      { source: `${path} (text)`, destination: `synthesized ${textComponent} '${id}'`, origin: "surfaceSynthesis.textComponent", kind: "synthesized", class: "synthesis-defaults", note: "the surface format has no text primitive" },
+      treePath,
+      Band.BeforeChildren,
+      phase,
+      rule,
+    );
     return id;
   }
 
@@ -831,6 +1023,12 @@ class SurfaceEmitter {
       Band.AfterChildren,
       Phase.Wrap,
     );
+    this.diagnostics.pushFidelity(
+      { source: `${path} (${childIds.length} children)`, destination: `synthesized ${wrapComponent} '${id}'`, origin: "surfaceSynthesis.wrapComponent", kind: "wrapped", class: "synthesis-defaults", note: "the target slot takes a single child" },
+      treePath,
+      Band.AfterChildren,
+      Phase.Wrap,
+    );
     return id;
   }
 
@@ -852,6 +1050,13 @@ class SurfaceEmitter {
           code: "surface-id-deduplicated",
           message: `${path}: node id '${preferred}' already used; emitted as '${id}'.`,
         },
+        where.treePath,
+        where.band,
+        where.phase,
+        where.rule,
+      );
+      this.diagnostics.pushFidelity(
+        { source: `${path} (id '${preferred}')`, destination: `id '${id}'`, origin: "allocateId", kind: "deduplicated", class: "maps-cleanly", note: "surface ids are deterministic first-come; collisions suffix _2, _3, …" },
         where.treePath,
         where.band,
         where.phase,
