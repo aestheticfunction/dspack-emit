@@ -104,6 +104,27 @@ export function loadProfile(json: unknown): Profile {
   const { profileVersion: _envelope, ...profile } = json as Record<string, unknown> & { profileVersion: string };
 
   if (version === "2") {
+    // Declared function args must be SELF-CONTAINED schemas. A $ref inside
+    // them couples the function's signature to emit internals at best and, at
+    // worst, is a dangling reference that ajv defers past gate A1's compile
+    // and then throws raw out of gate A3 — pass-or-crash, never a finding.
+    // Refuse the whole class at load, with the path.
+    const functions = (profile as { functions?: Record<string, { args?: unknown }> }).functions ?? {};
+    const refIssues: ProfileLoadIssue[] = [];
+    const findRefs = (value: unknown, at: string): void => {
+      if (Array.isArray(value)) value.forEach((v, i) => findRefs(v, `${at}/${i}`));
+      else if (value && typeof value === "object") {
+        for (const [k, v] of Object.entries(value)) {
+          if (k === "$ref") refIssues.push({ path: at, message: `function args must be self-contained schemas; '$ref' is refused (found ${JSON.stringify(v)})` });
+          else findRefs(v, `${at}/${k}`);
+        }
+      }
+    };
+    for (const [name, fn] of Object.entries(functions)) {
+      if (fn?.args) findRefs(fn.args, `/functions/${name}/args`);
+    }
+    if (refIssues.length > 0) throw new ProfileLoadError(refIssues, "profile.v2.schema.json (functions)");
+
     // Parse every plan's surface block now, so a v2 profile that LOADS is a
     // profile the engine can EMIT — grammar errors surface at load with
     // pathed findings, not mid-emission.

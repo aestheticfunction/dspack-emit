@@ -73,9 +73,19 @@ export function validateProfileAgainstContract(profile: Profile, doc: DspackDoc)
   const issues: ProfileContractIssue[] = [];
   const components = (doc.components ?? {}) as Record<string, ContractComponent>;
 
-  for (const [i, plan] of profile.components.entries()) {
-    if (!plan.dspackId || !plan.surface) continue;
-    const at = `/components/${i}/surface`;
+  // Both collections: mapping.ts counts any synthesized plan with a dspackId
+  // as mapped, so the gate must see exactly what the mapper sees. And a plan
+  // with NO surface block validates against the empty model — for a compound,
+  // that means every declared sub is unresolved and refuses, identically to
+  // `surface: {}`. Presence of an empty key must never flip the gate.
+  const collections: Array<["components" | "synthesized", typeof profile.components]> = [
+    ["components", profile.components],
+    ["synthesized", profile.synthesized],
+  ];
+  for (const [collection, plans] of collections) {
+  for (const [i, plan] of plans.entries()) {
+    if (!plan.dspackId) continue;
+    const at = `/${collection}/${i}/surface`;
     const component = components[plan.dspackId];
     if (!component) continue; // mapping.ts already warns on unknown dspackIds
 
@@ -121,6 +131,7 @@ export function validateProfileAgainstContract(profile: Profile, doc: DspackDoc)
         message: `sub-component '${sub}' of '${plan.dspackId}' is unresolved: no route consumes it, no collect gathers it, no disposition dissolves or drops it. Decide it — route, collect, transparent, asText, or drop with a reason.`,
       });
     }
+  }
   }
 
   if (issues.length > 0) throw new ProfileContractError(issues);

@@ -216,6 +216,28 @@ class SurfaceEmitter {
       this.emitChildren(node, model, instance, id, path, treePath);
     }
 
+    // The one loss channel nothing else ledgers: node text on a plan with no
+    // self.text route. v1 has always silently discarded it — warnings are
+    // byte-frozen, so the WARNING stays absent — but the ledger exists
+    // precisely so no discard is unaccounted. (Consuming plans are exempt:
+    // their document-order walk may legitimately read the node's own text.)
+    const readsSelfText = model.routes.some((r) => r.from.some((s) => s.kind === "self-text"));
+    if (node.text !== undefined && !readsSelfText && !model.consumesSubtree) {
+      this.diagnostics.pushFidelity(
+        {
+          source: `${path} (text)`,
+          destination: "(discarded)",
+          origin: "(no rule)",
+          kind: "dropped",
+          class: "lossy",
+          note: `'${node.component}' has no self.text route; its text was discarded`,
+        },
+        treePath,
+        Band.BeforeChildren,
+        Phase.PropMap,
+      );
+    }
+
     this.components[index] = instance;
     return id;
   }
@@ -368,9 +390,17 @@ class SurfaceEmitter {
     );
   }
 
-  /** Writes `value` unless the destination is taken and the route is first-wins. */
-  private write(instance: Json, name: string, value: Json[keyof Json], overwrite?: boolean): void {
-    if (overwrite || instance[name] === undefined) instance[name] = value;
+  /**
+   * Writes `value` unless the destination is taken and the route is
+   * first-wins. Returns whether the write LANDED — the fidelity ledger must
+   * record a discarded harvest as discarded, never as a clean move.
+   */
+  private write(instance: Json, name: string, value: Json[keyof Json], overwrite?: boolean): boolean {
+    if (overwrite || instance[name] === undefined) {
+      instance[name] = value;
+      return true;
+    }
+    return false;
   }
 
   private applyRoute(
@@ -428,15 +458,24 @@ class SurfaceEmitter {
           route.overwrite,
         );
       } else {
-        this.write(instance, route.to.name, found as Json[keyof Json], route.overwrite);
+        const landed = this.write(instance, route.to.name, found as Json[keyof Json], route.overwrite);
         this.diagnostics.pushFidelity(
-          {
-            source: `${path} (${describeSelector(selector)})`,
-            destination: route.to.name,
-            origin: route.origin,
-            kind: selector.kind === "self-prop" ? "projected" : "moved",
-            class: "maps-cleanly",
-          },
+          landed
+            ? {
+                source: `${path} (${describeSelector(selector)})`,
+                destination: route.to.name,
+                origin: route.origin,
+                kind: selector.kind === "self-prop" ? "projected" : "moved",
+                class: "maps-cleanly",
+              }
+            : {
+                source: `${path} (${describeSelector(selector)})`,
+                destination: "(discarded)",
+                origin: route.origin,
+                kind: "dropped",
+                class: "lossy",
+                note: `'${route.to.name}' was already written by an earlier phase; the harvested value did not land`,
+              },
           treePath,
           Band.BeforeChildren,
           selector.kind === "self-prop" ? Phase.PropMap : Phase.TextChild,
@@ -544,11 +583,14 @@ class SurfaceEmitter {
     path: string,
     treePath: readonly number[],
   ): void {
-    // A prop routed verbatim to a same-named destination is projected by that
+    // A prop routed verbatim to a SAME-NAMED destination is projected by that
     // route, not by the prop map — v1 spelled this `structuralPassthrough`.
+    // The name check matters: a v2 route may read a declared contract prop
+    // into a differently-named destination, and that read must not suppress
+    // the prop's own projection (both writes are real, to distinct names).
     const routedVerbatim = new Set(
       model.routes
-        .filter((r) => r.from.some((s) => s.kind === "self-prop"))
+        .filter((r) => r.from.some((s) => s.kind === "self-prop" && s.prop === r.to.name))
         .map((r) => (r.from.find((s) => s.kind === "self-prop") as { prop: string }).prop),
     );
     for (const [prop, raw] of Object.entries(node.props ?? {})) {
@@ -696,18 +738,27 @@ class SurfaceEmitter {
 
     const value = this.isFlatTarget(collect) ? flat : out;
     if (value.length > 0) {
-      this.write(instance, collect.as.name, value as Json[keyof Json]);
+      const landed = this.write(instance, collect.as.name, value as Json[keyof Json]);
       this.diagnostics.pushFidelity(
-        {
-          source: `${path} (${collect.of.join("|")} repetitions)`,
-          destination: collect.as.name,
-          origin: collect.origin,
-          kind: "moved",
-          class: "maps-cleanly",
-          note: this.isFlatTarget(collect)
-            ? `${flat.length} cell(s) collected into one flat list`
-            : `${out.length} record(s) collected`,
-        },
+        landed
+          ? {
+              source: `${path} (${collect.of.join("|")} repetitions)`,
+              destination: collect.as.name,
+              origin: collect.origin,
+              kind: "moved",
+              class: "maps-cleanly",
+              note: this.isFlatTarget(collect)
+                ? `${flat.length} cell(s) collected into one flat list`
+                : `${out.length} record(s) collected`,
+            }
+          : {
+              source: `${path} (${collect.of.join("|")} repetitions)`,
+              destination: "(discarded)",
+              origin: collect.origin,
+              kind: "dropped",
+              class: "lossy",
+              note: `'${collect.as.name}' was already written by an earlier phase; the collected ${this.isFlatTarget(collect) ? "cells" : "records"} did not land`,
+            },
         treePath,
         Band.BeforeChildren,
         Phase.TableBody,
@@ -869,7 +920,9 @@ class SurfaceEmitter {
   ): void {
     const childRoute = model.routes.find((r) => r.from.some((s) => s.kind === "children"));
     const childNodes =
-      Object.keys(model.subIdentity).length > 0 ? this.rewriteChildren(node, model, path, treePath) : collectChildren(node).map((c) => ({ node: c.node, suffix: c.suffix }));
+      Object.keys(model.subIdentity).length > 0 || Object.keys(model.drops).length > 0
+        ? this.rewriteChildren(node, model, path, treePath)
+        : collectChildren(node).map((c) => ({ node: c.node, suffix: c.suffix }));
     if (childNodes.length === 0) return;
 
     const childIds = childNodes.map((child, i) =>
@@ -913,6 +966,25 @@ class SurfaceEmitter {
   ): Array<{ node: SurfaceNode; suffix: string } | { text: string; textVariant: string }> {
     const out: Array<{ node: SurfaceNode; suffix: string } | { text: string; textVariant: string }> = [];
     const visit = (n: SurfaceNode, suffix: string): void => {
+      // An authored drop is warn-and-discard, exactly like the collect path:
+      // the sub is skipped with its reason on record, never emitted and never
+      // crashed into the unknown-component refusal.
+      const dropReason = model.drops[n.component];
+      if (dropReason !== undefined) {
+        this.diagnostics.push(
+          { code: "surface-sub-dropped", message: `${path}: '${n.component}' dropped: ${dropReason}.` },
+          treePath,
+          Band.BeforeChildren,
+          Phase.ChildRewrite,
+        );
+        this.diagnostics.pushFidelity(
+          { source: `${path} (${n.component})`, destination: "(discarded)", origin: `drops.${n.component}`, kind: "dropped", class: "lossy", note: dropReason },
+          treePath,
+          Band.BeforeChildren,
+          Phase.ChildRewrite,
+        );
+        return;
+      }
       const identity = model.subIdentity[n.component];
       if (identity?.kind === "transparent") {
         this.diagnostics.push(
@@ -936,6 +1008,18 @@ class SurfaceEmitter {
       }
       if (identity?.kind === "as-text") {
         const text = this.subtreeText(n);
+        const nested = collectChildren(n);
+        if (nested.length > 0) {
+          // Structure destroyed, text preserved — the same loss the cell
+          // flatten records, and it must class the same way.
+          const names = nested.map((c) => `'${c.node.component}'`).join(", ");
+          this.diagnostics.pushFidelity(
+            { source: `${path} (${n.component} containing ${names})`, destination: "(subtree text)", origin: `subs.${n.component}`, kind: "flattened", class: "lossy", note: "re-identified as text; nested component structure and props are not carried" },
+            treePath,
+            Band.BeforeChildren,
+            Phase.ChildRewrite,
+          );
+        }
         if (text !== "") {
           out.push({ text, textVariant: identity.variant });
         } else {

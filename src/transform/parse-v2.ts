@@ -25,6 +25,7 @@ import type { ComponentPlan } from "./profiles.js";
 import {
   WriteOrder,
   emptySurfaceModel,
+  isCollect,
   type Collect,
   type Destination,
   type Route,
@@ -210,6 +211,15 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
   const claimed = new Map<string, Array<{ order: WriteOrder; by: string }>>();
   const claim = (name: string, order: WriteOrder, by: string, at: string): void => {
     const prior = claimed.get(name) ?? [];
+    // The children destination is exclusive in BOTH directions (see the
+    // children-route check below for the rationale).
+    const children = prior.find((c) => c.order === WriteOrder.Children);
+    if (children && order !== WriteOrder.Children) {
+      issues.push({
+        path: at,
+        message: `destination '${name}' is claimed by the children route (${children.by}); instance references do not participate in first-wins layering`,
+      });
+    }
     const clash = prior.find((c) => c.order === order);
     if (clash) {
       issues.push({
@@ -265,6 +275,19 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
       continue;
     }
 
+    // firstText is a FALLBACK selector: the engine serves it only after a
+    // primary label/text selector yielded nothing. As a primary it would
+    // parse, derive Consume, and then never resolve — consuming the subtree
+    // while writing nothing. Refuse the dead spelling instead of shipping it.
+    if (from[0].kind === "sub-text-lift") {
+      issues.push({
+        path: `${at}/from/0`,
+        message:
+          "sub(…).firstText is a fallback selector and cannot lead a route; give the route a primary (sub(…).label or sub(…).text) and put firstText after it",
+      });
+      continue;
+    }
+
     if (from[0].kind === "children") {
       childrenRoutes++;
       if (from.length > 1) {
@@ -272,6 +295,17 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
       }
       if (childrenRoutes > 1) {
         issues.push({ path: at, message: "only one children route is supported (multiple named slots arrive with capability class T4)" });
+      }
+      // A children route produces INSTANCES, not a value: it cannot join
+      // first-wins layering, so its destination is exclusively its own. Two
+      // writers here would either orphan a synthesized instance in the hashed
+      // artifact or silently discard the children — refuse the pair.
+      const shared = claimed.get(to.name);
+      if (shared && shared.length > 0) {
+        issues.push({
+          path: `${at}/to`,
+          message: `destination '${to.name}' is already claimed by ${shared[0].by}; a children route's destination cannot be layered with value routes (instance references do not participate in first-wins)`,
+        });
       }
     }
 
@@ -333,9 +367,11 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
     // A sub with an identity/drop must not also be a route or collect source —
     // two dispositions for one sub is a contradiction, not a preference.
     const alsoRouted = model.routes.some((r) => r.from.some((s) => "subs" in s && (s.subs as string[]).includes(sub)));
-    const alsoCollected = model.collects.some(
-      (col) => col.of.includes(sub) || (col.item && Object.values(col.item).some((f) => "of" in f && f.of.includes(sub))) || Boolean(col.scalar?.from.some((s) => "subs" in s && (s.subs as string[]).includes(sub))),
-    );
+    const inCollect = (col: Collect): boolean =>
+      col.of.includes(sub) ||
+      Boolean(col.scalar?.from.some((s) => "subs" in s && (s.subs as string[]).includes(sub))) ||
+      Object.values(col.item ?? {}).some((f) => (isCollect(f) ? inCollect(f) : f.from.some((s) => "subs" in s && (s.subs as string[]).includes(sub))));
+    const alsoCollected = model.collects.some(inCollect);
     if (alsoRouted || alsoCollected) {
       issues.push({ path: at, message: `sub-component '${sub}' has a disposition here and is also consumed by a ${alsoRouted ? "route" : "collect"}; one sub, one disposition` });
     }
