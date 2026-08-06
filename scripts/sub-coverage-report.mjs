@@ -98,7 +98,10 @@ for (const [label, docPath, profPath] of [
     "/Users/ryandombrowski/Desktop/dspack-studio/apps/composer/demo-project/acme-ui.dspack.json",
     "/Users/ryandombrowski/Desktop/dspack-studio/apps/composer/demo-project/acme.profile.json",
   ],
-  ["production shadcn v3.0.0", "/tmp/prod-contract.json", "/tmp/scale/shadcn.profile.json"],
+  // The durable production measurement: the pinned v3 contract copy plus the
+  // reproducible evaluation fixture (see eval/build-eval-profile.mjs — NOT
+  // Studio's profile; unresolved entries are deliberate open decisions).
+  ["production shadcn v3.0.0 (eval fixture)", `${ROOT}/eval/shadcn-v3.dspack.json`, `${ROOT}/eval/shadcn-v3.eval.profile.json`],
 ]) {
   try {
     report(label, read(docPath), loadProfile(read(profPath)));

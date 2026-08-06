@@ -20,7 +20,7 @@ import { transformFromJson } from "./transform/index.js";
 import { emitSurface } from "./targets/a2ui/surface.js";
 import { loadProfile, ProfileLoadError } from "./transform/profile-load.js";
 import { shadcnProfile, type ComponentPlan } from "./transform/profiles.js";
-import type { SurfaceV2 } from "./transform/parse-v2.js";
+import { SHADCN_V2_SURFACES as V2_SURFACES } from "./transform/shadcn-v2-respelling.js";
 import type { A2uiVersion, DspackDoc, DspackSurface } from "./types.js";
 
 const repo = (p: string) => fileURLToPath(new URL(`../${p}`, import.meta.url));
@@ -33,56 +33,6 @@ const digest = (value: unknown): string =>
 // The v2 re-spelling: every v1 directive the shadcn profile uses, as
 // primitives. Hand-authored — this is what a v2 profile author would write.
 // ---------------------------------------------------------------------------
-
-const V2_SURFACES: Record<string, SurfaceV2> = {
-  button: {
-    routes: [
-      { from: ["self.text"], to: "textChild:child", overwrite: true },
-      { from: ["synthesized.action"], to: "action:action" },
-    ],
-  },
-  card: {
-    routes: [{ from: ["children"], to: "slot:child" }],
-    subs: {
-      "card-header": "transparent",
-      "card-content": "transparent",
-      "card-footer": "transparent",
-      "card-title": { asText: "h3" },
-      "card-description": { asText: "caption" },
-    },
-  },
-  input: {
-    routes: [{ from: ["self.text"], to: "prop:label", overwrite: true }],
-  },
-  badge: {
-    routes: [{ from: ["self.text"], to: "prop:label", overwrite: true }],
-  },
-  table: {
-    routes: [
-      { from: ["self.props.caption"], to: "prop:caption" },
-      { from: ["self.props.columns"], to: "prop:columns" },
-      { from: ["self.props.rows"], to: "prop:rows" },
-      { from: ["sub(table-caption).subtreeText"], to: "prop:caption" },
-    ],
-    collects: [
-      { of: ["table-header"], into: "prop:columns", shape: "flat", row: ["table-row"], cells: ["table-cell", "table-head"] },
-      { of: ["table-body"], into: "prop:rows", shape: "records", field: "cells", row: ["table-row"], cells: ["table-cell", "table-head"] },
-    ],
-    subs: {
-      "table-footer": { drop: "summary rows have no slot in the synthesized caption/columns/rows shape" },
-    },
-  },
-  "alert-dialog": {
-    routes: [
-      { from: ["sub(alert-dialog-title).text"], to: "prop:title" },
-      { from: ["sub(alert-dialog-description).text"], to: "prop:description" },
-      { from: ["sub(alert-dialog-cancel).text"], to: "prop:cancelLabel" },
-      { from: ["sub(alert-dialog-action).text"], to: "prop:confirmLabel" },
-      { from: ["sub(alert-dialog-trigger).label", "sub(alert-dialog-trigger).firstText"], to: "prop:triggerLabel" },
-      { from: ["synthesized.action"], to: "action:action" },
-    ],
-  },
-};
 
 /**
  * The v2 document, built from the TS profile so every non-surface field is
