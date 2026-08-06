@@ -146,3 +146,112 @@ exactly this at build time, so every example in the contract is proven
 emittable. Gate details and CLI equivalents are in the
 [README](../README.md); the shadcn casualty rationale that motivates the
 directive set is in [MAPPING.md](./MAPPING.md).
+
+## Profile v2 — the primitive language
+
+v1's ten surface-plan directives are **compatibility syntax**: they keep
+loading and emitting byte-identically, indefinitely, and everything above this
+section still describes them. New profiles should be authored in **v2**
+(`"profileVersion": "2"`), which spells the transformation model directly —
+three constructs instead of ten directives.
+
+Every plan answers three questions:
+
+- **Identity** — does a node become an instance, and as which component?
+  (`a2ui`, plus per-sub dispositions under `surface.subs`)
+- **Routing** — for each piece of its subtree, where does it land?
+  (`surface.routes`)
+- **Repetition** — when a sub-structure repeats, how does it become an array?
+  (`surface.collects`)
+
+```jsonc
+{
+  "a2ui": "AlertDialog",
+  "dspackId": "alert-dialog",
+  "commons": ["ComponentCommon"],
+  "structural": { /* … declared A2UI-side slots, exactly as in v1 … */ },
+  "required": ["triggerLabel", "title", "action"],
+  "surface": {
+    "routes": [
+      { "from": ["sub(alert-dialog-title).text"], "to": "prop:title" },
+      { "from": ["sub(alert-dialog-trigger).label",
+                 "sub(alert-dialog-trigger).firstText"], "to": "prop:triggerLabel" },
+      { "from": ["synthesized.action"], "to": "action:action" }
+    ]
+  }
+}
+```
+
+**Selectors** (closed set — there is no expression language, no JSON paths,
+no predicates): `self.text`, `self.props.<prop>`,
+`sub(<id>|…).text` / `.label` / `.firstText` / `.subtreeText`,
+`children`, `synthesized.action`.
+
+**Destinations** (names are literal, never computed): `prop:<name>`,
+`textChild:<name>`, `slot:<name>`, `slots:<name>`, `action:<name>`. Every
+destination must be declared by the plan — a structural slot or a propMap
+target — because gate A3 catches an *omitted* property but silently passes an
+*invented* one; load-time checking is where invention dies.
+
+A route's `from` is an **ordered fallback chain**: the first selector that
+yields a value wins. All selectors in one route must resolve in the same
+write phase, and two same-phase writers on one destination refuse; layered
+writers in distinct phases are legal (a passthrough prop beats a harvested
+one, deterministically).
+
+**Repetition** collects repeated sub-structures into an array-valued prop:
+
+```jsonc
+"collects": [
+  { "of": ["table-header"], "into": "prop:columns", "shape": "flat",
+    "row": ["table-row"], "cells": ["table-head", "table-cell"] },
+  { "of": ["table-body"],   "into": "prop:rows",    "shape": "records",
+    "field": "cells", "row": ["table-row"], "cells": ["table-cell", "table-head"] }
+]
+```
+
+**Sub dispositions** name what happens to each sub-component the routes and
+collects do not consume:
+
+```jsonc
+"subs": {
+  "card-header":      "transparent",          // dissolves; children rise in place
+  "card-title":       { "asText": "h3" },      // re-identifies as the text primitive
+  "table-footer":     { "drop": "summary rows have no slot in this shape" }
+}
+```
+
+**Every sub-component must be accounted for.** A v2 profile whose mapped
+compound leaves a sub unresolved — no route consumes it, no collect gathers
+it, no disposition dissolves or drops it — refuses to transform, per sub,
+with a pathed finding naming the decision to make. (v1 profiles report the
+same derivation under coverage instead, and `--strict-coverage` makes it
+fatal there.)
+
+**Functions** (v2 only): declare the catalog's check vocabulary as data, and
+every `FunctionCall` an instance makes is validated against it — an
+undeclared function fails gate A3. Definitions are declarative arg schemas;
+implementations live in renderers.
+
+```jsonc
+"functions": {
+  "matchesRegexp": { "description": "True when the value matches.",
+                     "returns": "boolean",
+                     "args": { "type": "object",
+                               "properties": { "pattern": { "type": "string" } },
+                               "required": ["pattern"] } }
+}
+```
+
+**One language per document.** A v2 document must not carry `surfacePlan` or
+`subCoverage`; a v1 document must not carry `surface` or `functions`. The
+loader dispatches on `profileVersion` and validates against exactly one of
+[profile.v1.schema.json](../src/transform/profile.v1.schema.json) /
+[profile.v2.schema.json](../src/transform/profile.v2.schema.json); unknown
+versions refuse naming the supported set.
+
+`scaffoldProfile` emits v2: mechanical identities and prop projections,
+children/text routes only where the contract's worked examples show them, and
+every sub-component surfaced as an explicit unresolved decision that
+transform refuses until you make it. The refusal is the point — it is your
+work checklist, not an error to silence.
