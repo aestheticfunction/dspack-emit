@@ -171,7 +171,7 @@ describe("scaffoldProfile", () => {
     const { profile } = scaffoldProfile(astryxDoc, {
       catalogIdBase: "https://example.test/catalogs/astryx-scaffold",
     });
-    // The scaffold is itself a valid v1 profile document.
+    // The scaffold is itself a valid v2 profile document.
     const loaded = loadProfile(profile);
     expect(loaded.catalogIdBase).toBe("https://example.test/catalogs/astryx-scaffold");
   });
@@ -189,6 +189,41 @@ describe("scaffoldProfile", () => {
     // Mechanical means mechanical: no casualties invented, judgment flagged in notes.
     expect(loaded.casualtyComponents).toEqual([]);
     expect(notes.length).toBeGreaterThan(0);
+  });
+
+  it("a scaffold's unresolved decisions, once resolved, transform — the authoring loop closes", () => {
+    const { profile, notes } = scaffoldProfile(shadcnDoc, {
+      catalogIdBase: "https://example.test/catalogs/shadcn-scaffold",
+    });
+    // The scaffold names every decision it refused to make...
+    const pending = notes.filter((n) => n.note.startsWith("unresolved sub-component"));
+    expect(pending.length).toBeGreaterThanOrEqual(10);
+    const xs = (profile["x-scaffold"] as { unresolved: Record<string, string[]> }).unresolved;
+    expect(Object.keys(xs)).toEqual(expect.arrayContaining(["card", "table", "alert-dialog"]));
+
+    // ...and an author resolving ONE compound's subs makes that compound emit.
+    const components = profile.components as Array<Record<string, unknown>>;
+    const card = components.find((c) => c.dspackId === "card")!;
+    card.surface = {
+      routes: [{ from: ["children"], to: "slots:children" }],
+      subs: {
+        "card-header": "transparent",
+        "card-content": "transparent",
+        "card-footer": "transparent",
+        "card-title": { asText: "h3" },
+        "card-description": { asText: "caption" },
+      },
+    };
+    // The other compounds stay undecided, so transform still refuses — but no
+    // longer about card: its family is resolved and gone from the findings.
+    try {
+      transformFromJson(shadcnDoc, { profile: loadProfile(profile) });
+      expect.unreachable("table and alert-dialog are still undecided");
+    } catch (e) {
+      const issues = (e as { issues: Array<{ message: string }> }).issues;
+      expect(issues.some((i) => i.message.includes("of 'card'"))).toBe(false);
+      expect(issues.some((i) => i.message.includes("of 'table'"))).toBe(true);
+    }
   });
 
   it("seeds enum props verbatim (identity projection, no valueMap)", () => {

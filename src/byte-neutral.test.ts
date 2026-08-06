@@ -54,10 +54,13 @@ const CATALOGS: Record<string, string> = {
   "shadcn/json/0.9.1": "7c1b72dfd83dde14",
   "shadcn/ts/1.0": "2dde439bbf643834",
   "shadcn/json/1.0": "2dde439bbf643834",
-  "astryx-scaffold/0.9.1": "56209cb772f8264e",
-  "astryx-scaffold/1.0": "5991af499aa13846",
-  "shadcn-scaffold/0.9.1": "f111ff44b4caf038",
-  "shadcn-scaffold/1.0": "7336ef1a1e148e32",
+  // INTENTIONAL MOVE (scaffold rewrite): the scaffold now emits the v2
+  // primitive language and derives children/text routes from the contract's
+  // worked examples, so scaffolded catalogs carry the slots the old scaffold
+  // omitted. The old digests described a scaffold that was surface-unusable
+  // for props-based contracts; these describe one that emits.
+  "astryx-scaffold/0.9.1": "ffb8fd24891bedfc",
+  "astryx-scaffold/1.0": "60f82244302ad1fd",
 };
 
 const SURFACES: Record<string, string> = {
@@ -90,12 +93,25 @@ describe("catalog emission is byte-stable", () => {
       expect(digest(out.catalog)).toBe(CATALOGS[`astryx-scaffold/${version}`]);
     });
 
-    it(`shadcn / scaffolded profile / a2ui ${version}`, () => {
+    it(`shadcn / scaffolded profile / a2ui ${version} — refuses until every sub is decided`, () => {
+      // INTENTIONAL MOVE (scaffold rewrite): the old scaffold auto-classified
+      // every sub transparent-or-asText — the exact guess that is wrong for a
+      // repeated item — and its digest pinned that invention. The scaffold's
+      // pinned behaviour for a compound contract is now the REFUSAL: it loads,
+      // and transform refuses per undecided sub until the author decides.
       const { profile } = scaffoldProfile(shadcnDoc, {
         catalogIdBase: "https://example.test/catalogs/shadcn-scaffold",
       });
-      const out = transformFromJson(shadcnDoc, { profile: loadProfile(profile), a2uiVersion: version });
-      expect(digest(out.catalog)).toBe(CATALOGS[`shadcn-scaffold/${version}`]);
+      const loaded = loadProfile(profile); // loadProfile-valid stays true
+      try {
+        transformFromJson(shadcnDoc, { profile: loaded, a2uiVersion: version });
+        expect.unreachable("a scaffold with undecided subs must refuse to transform");
+      } catch (e) {
+        const issues = (e as { issues: Array<{ message: string }> }).issues;
+        expect(issues.length).toBeGreaterThanOrEqual(5); // card + alert-dialog + table sub-families at minimum
+        expect(issues.every((i) => i.message.includes("unresolved"))).toBe(true);
+        expect(issues.some((i) => i.message.includes("'card-header' of 'card'"))).toBe(true);
+      }
     });
   }
 });
