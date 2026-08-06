@@ -4,6 +4,8 @@
  * for unsupported constructs, and the design-token projection. It reads only the
  * dspack JSON and the profile — never framework code.
  */
+import { surfaceModelOf } from "./desugar.js";
+import { deriveSubCoverage } from "./model.js";
 import type {
   CoverageEntry,
   DspackComponent,
@@ -143,6 +145,46 @@ function computeCoverage(
         class: "cannot-represent",
         note: "Unclassified by the profile. This is a coverage gap, not a deliberate casualty.",
       });
+    }
+  }
+
+  // Sub-component coverage, DERIVED from each mapped compound's transformation
+  // model rather than authored prose (the old `subCoverage` field is v1
+  // documentation the engine never read; the model is what actually happens).
+  // An unresolved sub is an unclassified coverage entry: for v1 profiles this
+  // reports (and fails under --strict-coverage); v2 profiles never get here —
+  // validateProfileAgainstContract refuses them at entry. Measured before
+  // enforcement: pinned shadcn v2.3.0, astryx and acme all derive zero
+  // unresolved subs, so no shipped artifact changes.
+  const byId = new Map<string, ComponentPlan>();
+  for (const p of [...profile.components, ...profile.synthesized]) {
+    if (p.dspackId) byId.set(p.dspackId, p);
+  }
+  for (const [id, component] of Object.entries(doc.components ?? {})) {
+    const subs =
+      (component as { composition?: { subComponents?: Array<{ id: string }> } }).composition?.subComponents ?? [];
+    if (subs.length === 0) continue;
+    const plan = byId.get(id);
+    if (!plan) continue; // unmapped/casualty parents: the parent entry above carries the family
+    const model = surfaceModelOf(plan);
+    const derived = deriveSubCoverage(model, subs.map((s) => s.id));
+    for (const sub of subs) {
+      const how = derived.get(sub.id);
+      if (how) {
+        coverage.push({ id: `${id}.${sub.id}`, disposition: "mapped", detail: how });
+      } else {
+        coverage.push({ id: `${id}.${sub.id}`, disposition: "unclassified" });
+        warnings.push({
+          code: `unresolved-sub:${id}.${sub.id}`,
+          message: `sub-component '${sub.id}' of mapped compound '${id}' is unresolved: no route consumes it, no collect gathers it, no disposition dissolves or drops it.`,
+        });
+        fidelity.push({
+          source: `components.${id}.composition.${sub.id}`,
+          target: "(silently dropped)",
+          class: "cannot-represent",
+          note: "Unresolved by the compound's transformation model. This is a coverage gap, not a deliberate casualty.",
+        });
+      }
     }
   }
   return coverage;

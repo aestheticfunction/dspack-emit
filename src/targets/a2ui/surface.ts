@@ -44,6 +44,7 @@ import { toHex6 } from "../../transform/color.js";
 import { collectChildren } from "../csr.js";
 import { Band, Diagnostics, Phase } from "./diagnostics.js";
 import { surfaceModelOf } from "../../transform/desugar.js";
+import { validateProfileAgainstContract } from "../../transform/validate-v2.js";
 import { isCollect, WriteOrder, type Collect, type Route, type Selector, type SurfaceModel } from "../../transform/model.js";
 
 export class EmitSurfaceError extends Error {
@@ -87,6 +88,11 @@ export function emitSurface(
       "$.system",
     );
   }
+
+  // A v2 profile that does not fit this contract refuses before any node
+  // emits — the same gate transform() runs, so surface-only callers get the
+  // same fail-closed story.
+  validateProfileAgainstContract(profile, doc);
 
   const byDspackId = new Map<string, ComponentPlan>();
   for (const plan of profile.components) {
