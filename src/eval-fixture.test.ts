@@ -6,14 +6,16 @@
  * compounds, 1 unresolved"): that profile's nine extra compound plans carried
  * judgment that did not survive the reboot. This fixture transplants only
  * COMMITTED mapping evidence — the six shipped plans in their byte-proven v2
- * re-spelling, and now the T1 transparent-identity resolutions proven in
- * src/t1.test.ts — onto a mechanical scaffold of the pinned v3 contract,
- * declares zero casualties, and lets every open decision show as open:
+ * re-spelling, the T1 transparent-identity resolutions (src/t1.test.ts), and
+ * the T2 item-mode collection plans (src/t2.test.ts) — onto a mechanical
+ * scaffold of the pinned v3 contract, declares zero casualties, and lets
+ * every open decision show as open:
  *
  *   106 sub-components under 19 mapped compounds
- *    26 resolved  — the transplanted families (card 5, table 7,
- *                   alert-dialog 8) plus T1's form family (6)
- *    80 unresolved — real, deliberate, and the measure of the T2–T5 work
+ *    34 resolved  — the transplanted families (card 5, table 7,
+ *                   alert-dialog 8), T1's form family (6), T2's
+ *                   radio-group (1) and select (7)
+ *    72 unresolved — real, deliberate, and the measure of the T3–T5 work
  *
  * The v2 contract gate refusing this fixture against the v3 contract is not a
  * failure; it is the fatal coverage gate doing on the production corpus
@@ -50,19 +52,19 @@ describe("the production-v3 evaluation fixture", () => {
     expect(profile.casualtyComponents).toEqual([]);
   });
 
-  it("the fatal coverage gate refuses it against the v3 contract: 80 unresolved decisions, each pathed", () => {
+  it("the fatal coverage gate refuses it against the v3 contract: 72 unresolved decisions, each pathed", () => {
     try {
       transformFromJson(contract, { profile: loadProfile(structuredClone(fixtureJson)) });
-      expect.unreachable("80 open representation decisions must refuse, not emit");
+      expect.unreachable("72 open representation decisions must refuse, not emit");
     } catch (e) {
       expect(e).toBeInstanceOf(ProfileContractError);
       const issues = (e as ProfileContractError).issues;
-      expect(issues).toHaveLength(80);
+      expect(issues).toHaveLength(72);
       expect(issues.every((i) => i.message.includes("unresolved"))).toBe(true);
     }
   });
 
-  it("derived coverage: 106 subs, 26 resolved (transplants + T1 form), 80 open", () => {
+  it("derived coverage: 106 subs, 34 resolved (transplants + T1 + T2), 72 open", () => {
     const profile = loadProfile(structuredClone(fixtureJson));
     const byId = new Map(profile.components.map((p: ComponentPlan) => [p.dspackId, p]));
     let resolved = 0;
@@ -84,7 +86,7 @@ describe("the production-v3 evaluation fixture", () => {
       }
     }
     expect(resolved + unresolved).toBe(106);
-    expect(unresolved).toBe(80);
-    expect(Object.fromEntries(resolvedByCompound)).toEqual({ card: 5, table: 7, "alert-dialog": 8, form: 6 });
+    expect(unresolved).toBe(72);
+    expect(Object.fromEntries(resolvedByCompound)).toEqual({ card: 5, table: 7, "alert-dialog": 8, form: 6, "radio-group": 1, select: 7 });
   });
 });

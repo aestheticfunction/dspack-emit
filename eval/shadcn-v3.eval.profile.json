@@ -1394,74 +1394,52 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "options": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value"
+              ],
+              "additionalProperties": false
+            }
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.expense-report-form'."
+          "description": "The selectable options, one record per item.",
+          "synthNote": "A2UI models repeated options as data on the group; dspack models them as repeated sub-components (T2 item-mode collection)."
         }
       },
-      "required": [
-        "children"
-      ],
       "propMap": {
-        "value": {
-          "a2ui": "value",
-          "kind": "string",
-          "description": "Controlled selected value. Must match the value of exactly one RadioGroupItem in the group."
+        "name": {
+          "a2ui": "name",
+          "kind": "string"
         },
         "defaultValue": {
           "a2ui": "defaultValue",
-          "kind": "string",
-          "description": "Initially selected value for an uncontrolled group. Omit it when there is no safe default — an unselected group forces a deliberate choice."
-        },
-        "orientation": {
-          "a2ui": "orientation",
-          "kind": "enum",
-          "targetEnum": [
-            "vertical",
-            "horizontal"
-          ],
-          "description": "Sets aria-orientation and constrains arrow-key navigation to one axis. Unset by default, which lets both axes navigate; set it to match the visual arrangement whenever the layout is committed to a direction."
-        },
-        "disabled": {
-          "a2ui": "disabled",
-          "kind": "boolean",
-          "description": "Disables every item in the group. To disable one option, set disabled on that RadioGroupItem instead."
-        },
-        "required": {
-          "a2ui": "required",
-          "kind": "boolean",
-          "description": "Whether a selection is required before the form can be submitted. Sets aria-required on the group."
-        },
-        "name": {
-          "a2ui": "name",
-          "kind": "string",
-          "description": "Form field name applied to the items' hidden native inputs, under which the selected value is submitted."
-        },
-        "loop": {
-          "a2ui": "loop",
-          "kind": "boolean",
-          "description": "Whether arrow-key navigation wraps from the last item back to the first."
-        },
-        "dir": {
-          "a2ui": "dir",
-          "kind": "enum",
-          "targetEnum": [
-            "ltr",
-            "rtl"
-          ],
-          "description": "Reading direction for arrow-key navigation. Inherited from an ambient direction provider when omitted."
+          "kind": "string"
         }
       },
+      "required": [
+        "options"
+      ],
       "surface": {
-        "routes": [
+        "collects": [
           {
-            "from": [
-              "children"
+            "of": [
+              "radio-group-item"
             ],
-            "to": "slots:children"
+            "into": "prop:options",
+            "item": {
+              "value": "self.id"
+            }
           }
         ]
       }
@@ -1473,72 +1451,61 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "options": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "additionalProperties": false
+            }
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.workspace-members-directory'."
+          "description": "The selectable options.",
+          "synthNote": "A2UI models repeated options as data on the control (T2 item-mode collection)."
+        }
+      },
+      "propMap": {
+        "defaultValue": {
+          "a2ui": "defaultValue",
+          "kind": "string"
         }
       },
       "required": [
-        "children"
+        "options"
       ],
-      "propMap": {
-        "value": {
-          "a2ui": "value",
-          "kind": "string",
-          "description": "Controlled selected value; must match the value of one SelectItem. The empty string means nothing is selected and shows the SelectValue placeholder."
-        },
-        "defaultValue": {
-          "a2ui": "defaultValue",
-          "kind": "string",
-          "description": "Initially selected value for an uncontrolled Select. Omit it to start on the placeholder."
-        },
-        "open": {
-          "a2ui": "open",
-          "kind": "boolean",
-          "description": "Controlled open state of the listbox. Only needed when something outside the Select has to open or close it."
-        },
-        "defaultOpen": {
-          "a2ui": "defaultOpen",
-          "kind": "boolean",
-          "description": "Whether the listbox starts open for an uncontrolled Select."
-        },
-        "disabled": {
-          "a2ui": "disabled",
-          "kind": "boolean",
-          "description": "Whether the whole control is non-interactive. To disable one option, set disabled on that SelectItem instead."
-        },
-        "required": {
-          "a2ui": "required",
-          "kind": "boolean",
-          "description": "Whether a value must be chosen before the form can be submitted. Sets aria-required on the trigger."
-        },
-        "name": {
-          "a2ui": "name",
-          "kind": "string",
-          "description": "Form field name applied to the hidden native select, under which the value is submitted."
-        },
-        "dir": {
-          "a2ui": "dir",
-          "kind": "enum",
-          "targetEnum": [
-            "ltr",
-            "rtl"
-          ],
-          "description": "Reading direction. Inherited from an ambient direction provider when omitted."
-        }
-      },
       "surface": {
-        "routes": [
+        "collects": [
           {
-            "from": [
-              "children"
+            "of": [
+              "select-item"
             ],
-            "to": "slots:children"
+            "into": "prop:options",
+            "item": {
+              "label": "self.text"
+            }
           }
-        ]
+        ],
+        "subs": {
+          "select-trigger": {
+            "drop": "the trigger renders from the bound value, not authored content"
+          },
+          "select-value": {
+            "drop": "the visible value is runtime state derived from the selection"
+          },
+          "select-label": {
+            "drop": "group headings are not carried by the flat options shape"
+          },
+          "select-separator": {
+            "drop": "visual grouping chrome with no data meaning"
+          }
+        }
       }
     },
     {
@@ -1974,7 +1941,7 @@
       "commit": "48643ff (aestheticfunction/dspack, merged as b573637 / PR #35)",
       "sha256": "ea87346f85965937cb2b18e3998f19da7ba3cee41b41572638d657f20b3f5565"
     },
-    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions proven in src/t1.test.ts; zero casualties declared, zero fresh judgment.",
+    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts); zero casualties declared, zero fresh judgment.",
     "unresolvedAreDeliberate": "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better."
   }
 }

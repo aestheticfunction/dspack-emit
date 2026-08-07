@@ -753,6 +753,56 @@ class SurfaceEmitter {
   ): void {
     void model;
     if (collect.as.kind === "inline") return;
+
+    // T2 item-mode: each descendant matching `of` (document order) becomes
+    // one record whose fields resolve against THAT item's own node. Absent
+    // sources omit the field — gate A3 arbitrates required record shapes,
+    // never synthesis. Sibling content the collect does not claim follows
+    // the ordinary consumed-subtree accounting (closeCollects).
+    if (collect.fields) {
+      const records: Json[] = [];
+      const visitItems = (n: SurfaceNode, nPath: string): void => {
+        if (collect.of.includes(n.component)) {
+          const record: Json = {};
+          for (const [fieldName, sel] of Object.entries(collect.fields!)) {
+            const value =
+              sel.kind === "self-text" ? n.text : sel.kind === "self-id" ? n.id : sel.kind === "self-prop" ? (n.props?.[sel.prop] as Json[keyof Json] | undefined) : undefined;
+            if (value !== undefined) record[fieldName] = value as Json[keyof Json];
+          }
+          records.push(record);
+          this.diagnostics.pushFidelity(
+            {
+              source: `${nPath} (${n.component})`,
+              destination: collect.as.kind === "inline" ? "(inline)" : collect.as.name,
+              origin: collect.origin,
+              kind: "moved",
+              class: "maps-cleanly",
+              note: `item record { ${Object.keys(record).join(", ")} } collected`,
+            },
+            treePath,
+            Band.BeforeChildren,
+            Phase.TableBody,
+            rule,
+          );
+          return; // an item's subtree is the item's; nested items do not re-match
+        }
+        collectChildren(n).forEach((c, i) => visitItems(c.node, `${nPath}${c.suffix}[${i}]`));
+      };
+      collectChildren(node).forEach((c, i) => visitItems(c.node, `${path}${c.suffix}[${i}]`));
+      if (records.length > 0) {
+        const landed = this.write(instance, collect.as.name, records as Json[keyof Json]);
+        if (!landed) {
+          this.diagnostics.pushFidelity(
+            { source: `${path} (${collect.of.join("|")} items)`, destination: "(discarded)", origin: collect.origin, kind: "dropped", class: "lossy", note: `'${collect.as.name}' was already written by an earlier phase; the collected records did not land` },
+            treePath,
+            Band.BeforeChildren,
+            Phase.TableBody,
+            rule,
+          );
+        }
+      }
+      return;
+    }
     const out: Json[] = [];
     const flat: string[] = [];
     const scalarField = Object.values(collect.item ?? {}).find((f) => isCollect(f) && f.scalar) as Collect | undefined;
@@ -836,12 +886,15 @@ class SurfaceEmitter {
       if (claimedByCollect.has(c) || this.claimedByRoute(model, c)) continue;
       const childPath = `${path}${child.suffix}`;
       const reason = model.drops[c];
+      const itemMode = model.collects.some((col) => col.fields);
       this.diagnostics.push(
         {
           code: "surface-sub-dropped",
           message: reason
             ? `${childPath}: '${c}' dropped: ${reason}.`
-            : `${childPath}: '${c}' has no slot in the synthesized table shape; dropped.`,
+            : itemMode
+              ? `${childPath}: '${c}' is not a collected item and has no disposition; dropped (sibling pairing is T3's declared join).`
+              : `${childPath}: '${c}' has no slot in the synthesized table shape; dropped.`,
         },
         treePath,
         Band.BeforeChildren,
@@ -862,10 +915,13 @@ class SurfaceEmitter {
       );
     }
 
+    const itemsOnly = model.collects.every((col) => col.fields);
     this.diagnostics.push(
       {
         code: "surface-composition-flattened",
-        message: `${path}: compound '${node.component}' subtree consumed into the synthesized table shape (documented casualty; cell content beyond text is not carried).`,
+        message: itemsOnly
+          ? `${path}: compound '${node.component}' subtree consumed into collected item records (uncollected content is not carried).`
+          : `${path}: compound '${node.component}' subtree consumed into the synthesized table shape (documented casualty; cell content beyond text is not carried).`,
       },
       treePath,
       Band.BeforeChildren,

@@ -370,55 +370,94 @@ export const profileSchemaV2: Record<string, unknown> = {
             "collects": {
               "type": "array",
               "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                  "of",
-                  "into",
-                  "shape",
-                  "row",
-                  "cells"
-                ],
-                "properties": {
-                  "of": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*$"
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "of",
+                      "into",
+                      "item"
+                    ],
+                    "properties": {
+                      "of": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*$"
+                        }
+                      },
+                      "into": {
+                        "type": "string",
+                        "pattern": "^prop:[A-Za-z][A-Za-z0-9]*$"
+                      },
+                      "item": {
+                        "type": "object",
+                        "minProperties": 1,
+                        "propertyNames": {
+                          "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+                        },
+                        "additionalProperties": {
+                          "type": "string",
+                          "pattern": "^(self\\.text|self\\.id|self\\.props\\.[A-Za-z][A-Za-z0-9]*)$"
+                        },
+                        "description": "T2 item-mode: one record per matching descendant; fields resolve on the item's own node (self.text, self.props.<prop>, self.id). Joins and sibling reads are T3."
+                      }
                     }
                   },
-                  "into": {
-                    "type": "string",
-                    "pattern": "^prop:[A-Za-z][A-Za-z0-9]*$"
-                  },
-                  "shape": {
-                    "enum": [
-                      "flat",
-                      "records"
-                    ]
-                  },
-                  "field": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z][A-Za-z0-9]*$"
-                  },
-                  "row": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*$"
-                    }
-                  },
-                  "cells": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "string",
-                      "pattern": "^[a-z][a-z0-9-]*$"
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "of",
+                      "into",
+                      "shape",
+                      "row",
+                      "cells"
+                    ],
+                    "properties": {
+                      "of": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*$"
+                        }
+                      },
+                      "into": {
+                        "type": "string",
+                        "pattern": "^prop:[A-Za-z][A-Za-z0-9]*$"
+                      },
+                      "shape": {
+                        "enum": [
+                          "flat",
+                          "records"
+                        ]
+                      },
+                      "field": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+                      },
+                      "row": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*$"
+                        }
+                      },
+                      "cells": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9-]*$"
+                        }
+                      }
                     }
                   }
-                }
+                ]
               }
             },
             "subs": {
