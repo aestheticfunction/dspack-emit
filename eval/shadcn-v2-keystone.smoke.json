@@ -1,0 +1,529 @@
+{
+  "profileVersion": "2",
+  "catalogTitle": "shadcn/ui — A2UI catalog (compiled from dspack)",
+  "catalogDescription": "A2UI catalog compiled from the shadcn/ui dspack v0.4 contract. Component shapes, variant enums, and the primary design token are projected onto the A2UI basic component vocabulary. See MAPPING.md for per-field fidelity.",
+  "catalogIdBase": "https://rdombrowski.dev/catalogs/shadcn-ui",
+  "instructions": "For layout, use the Column component to organize other components.",
+  "primaryColorToken": {
+    "category": "color",
+    "name": "primary"
+  },
+  "surfaceSynthesis": {
+    "textComponent": "Text",
+    "textProp": "text",
+    "wrapComponent": "Column",
+    "wrapChildrenProp": "children"
+  },
+  "components": [
+    {
+      "a2ui": "Button",
+      "dspackId": "button",
+      "commons": [
+        "ComponentCommon",
+        "Checkable"
+      ],
+      "structural": {
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The ID of the child component to render inside the button (e.g. a Text). Referenced by ID; not defined inline.",
+          "synthNote": "A2UI Buttons render a child component by ID; dspack Button has no equivalent slot (children are arbitrary React nodes)."
+        },
+        "action": {
+          "schema": {
+            "$ref": "#/$defs/Action"
+          },
+          "description": "The interaction dispatched when the button is activated.",
+          "synthNote": "A2UI requires a declarative action; dspack expresses this as an onClick handler prop, which is not representable in a declarative catalog."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "default",
+            "primary",
+            "borderless"
+          ],
+          "valueMap": {
+            "default": "primary",
+            "destructive": "default",
+            "outline": "default",
+            "secondary": "default",
+            "ghost": "borderless",
+            "link": "borderless"
+          },
+          "default": "primary",
+          "description": "Button style hint, projected from shadcn variants onto the A2UI basic vocabulary."
+        }
+      },
+      "required": [
+        "child",
+        "action"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.text"
+            ],
+            "to": "textChild:child",
+            "overwrite": true
+          },
+          {
+            "from": [
+              "synthesized.action"
+            ],
+            "to": "action:action"
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Card",
+      "dspackId": "card",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The ID of the single child component. Wrap multiple elements in a Column and pass its ID.",
+          "synthNote": "A2UI Card takes exactly one child by ID; dspack Card composes via sub-components (CardHeader/CardContent/CardFooter), which flatten (subFlatten strategy: grouping subs splice their children inline; title/description synthesize Text) and collapse to a single, possibly Column-wrapped, child slot."
+        }
+      },
+      "required": [
+        "child"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "children"
+            ],
+            "to": "slot:child"
+          }
+        ],
+        "subs": {
+          "card-header": "transparent",
+          "card-content": "transparent",
+          "card-footer": "transparent",
+          "card-title": {
+            "asText": "h3"
+          },
+          "card-description": {
+            "asText": "caption"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "TextField",
+      "dspackId": "input",
+      "commons": [
+        "ComponentCommon",
+        "Checkable"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The text label for the input field.",
+          "synthNote": "A2UI TextField owns its label; dspack Input relies on an external <label> element, so the label is synthesized."
+        },
+        "value": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The bound value of the text field.",
+          "synthNote": "A2UI two-way-binds value; dspack Input has no value prop in the contract."
+        }
+      },
+      "propMap": {
+        "type": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "shortText",
+            "longText",
+            "number",
+            "obscured"
+          ],
+          "valueMap": {
+            "text": "shortText",
+            "email": "shortText",
+            "search": "shortText",
+            "password": "obscured",
+            "number": "number"
+          },
+          "default": "shortText",
+          "description": "Input kind, projected from the HTML input type onto A2UI TextField variants."
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.text"
+            ],
+            "to": "prop:label",
+            "overwrite": true
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Badge",
+      "dspackId": "badge",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "label": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The badge text.",
+          "synthNote": "A2UI has no Badge; the label is synthesized from the badge's text child."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "default",
+            "secondary",
+            "outline",
+            "destructive"
+          ],
+          "default": "default",
+          "description": "Badge visual treatment (carried verbatim from shadcn; the React visual honors all four)."
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.text"
+            ],
+            "to": "prop:label",
+            "overwrite": true
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "Table",
+      "dspackId": "table",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "caption": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Accessible caption naming the table.",
+          "synthNote": "A2UI has no Table; caption synthesized from TableCaption."
+        },
+        "columns": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": "Header labels for the data columns (a trailing status column is rendered separately).",
+          "synthNote": "Static column labels; A2UI has no table-header primitive."
+        },
+        "rows": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "description": "Row records, each { cells: string[] }.",
+          "synthNote": "Row data carried as a static array; A2UI has no tabular data model."
+        }
+      },
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "self.props.caption"
+            ],
+            "to": "prop:caption"
+          },
+          {
+            "from": [
+              "self.props.columns"
+            ],
+            "to": "prop:columns"
+          },
+          {
+            "from": [
+              "self.props.rows"
+            ],
+            "to": "prop:rows"
+          },
+          {
+            "from": [
+              "sub(table-caption).subtreeText"
+            ],
+            "to": "prop:caption"
+          }
+        ],
+        "collects": [
+          {
+            "of": [
+              "table-header"
+            ],
+            "into": "prop:columns",
+            "shape": "flat",
+            "row": [
+              "table-row"
+            ],
+            "cells": [
+              "table-cell",
+              "table-head"
+            ]
+          },
+          {
+            "of": [
+              "table-body"
+            ],
+            "into": "prop:rows",
+            "shape": "records",
+            "field": "cells",
+            "row": [
+              "table-row"
+            ],
+            "cells": [
+              "table-cell",
+              "table-head"
+            ]
+          }
+        ],
+        "subs": {
+          "table-footer": {
+            "drop": "summary rows have no slot in the synthesized caption/columns/rows shape"
+          }
+        }
+      }
+    },
+    {
+      "a2ui": "AlertDialog",
+      "dspackId": "alert-dialog",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "triggerLabel": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Label of the button that opens the confirmation.",
+          "synthNote": "Trigger modeled as a label, not an AlertDialogTrigger sub-component."
+        },
+        "title": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Confirmation title.",
+          "synthNote": "From AlertDialogTitle."
+        },
+        "description": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Consequence description shown in the confirmation.",
+          "synthNote": "From AlertDialogDescription."
+        },
+        "confirmLabel": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Label of the destructive confirm action.",
+          "synthNote": "From AlertDialogAction."
+        },
+        "cancelLabel": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "Label of the cancel action.",
+          "synthNote": "From AlertDialogCancel."
+        },
+        "action": {
+          "schema": {
+            "$ref": "#/$defs/Action"
+          },
+          "description": "Event dispatched when the user confirms the destructive action.",
+          "synthNote": "A2UI declarative action; dspack expresses this as an onClick handler."
+        }
+      },
+      "required": [
+        "triggerLabel",
+        "title",
+        "action"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "sub(alert-dialog-title).text"
+            ],
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-cancel).text"
+            ],
+            "to": "prop:cancelLabel"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-action).text"
+            ],
+            "to": "prop:confirmLabel"
+          },
+          {
+            "from": [
+              "sub(alert-dialog-trigger).label",
+              "sub(alert-dialog-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "synthesized.action"
+            ],
+            "to": "action:action"
+          }
+        ]
+      }
+    }
+  ],
+  "synthesized": [
+    {
+      "a2ui": "Text",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "description": "Displays text content. Synthesized A2UI content primitive (not in dspack).",
+      "structural": {
+        "text": {
+          "schema": {
+            "$ref": "#/$defs/DynamicString"
+          },
+          "description": "The text content to display.",
+          "synthNote": "A2UI content primitive required to render labels/titles in a surface."
+        }
+      },
+      "propMap": {
+        "variant": {
+          "a2ui": "variant",
+          "kind": "enum",
+          "targetEnum": [
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "caption",
+            "body"
+          ],
+          "default": "body",
+          "description": "A hint for the base text style."
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    {
+      "a2ui": "Column",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "description": "Arranges children vertically. Synthesized A2UI structural primitive (dspack has no layout component; its `layout` block is descriptive only).",
+      "structural": {
+        "children": {
+          "schema": {
+            "$ref": "#/$defs/ChildList"
+          },
+          "description": "Child component IDs (or a template).",
+          "synthNote": "A2UI structural primitive required to compose multiple children."
+        }
+      },
+      "propMap": {
+        "justify": {
+          "a2ui": "justify",
+          "kind": "enum",
+          "targetEnum": [
+            "start",
+            "center",
+            "end",
+            "spaceBetween",
+            "spaceAround",
+            "spaceEvenly",
+            "stretch"
+          ],
+          "default": "start",
+          "description": "Arrangement of children along the vertical main axis."
+        },
+        "align": {
+          "a2ui": "align",
+          "kind": "enum",
+          "targetEnum": [
+            "center",
+            "end",
+            "start",
+            "stretch"
+          ],
+          "default": "stretch",
+          "description": "Alignment of children along the horizontal cross axis."
+        }
+      },
+      "required": [
+        "children"
+      ]
+    }
+  ],
+  "casualtyComponents": [
+    {
+      "dspackId": "dialog",
+      "attempted": "Modal",
+      "class": "cannot-represent",
+      "reason": "dspack Dialog is a compound component (DialogTrigger/Content/Header/Title/Description/Footer/Close) with required-children composition rules, focus management, and a11y roles. A2UI Modal exposes only trigger+content; the composition contract cannot be represented."
+    },
+    {
+      "dspackId": "dropdown-menu",
+      "attempted": "(none)",
+      "class": "cannot-represent",
+      "reason": "No A2UI basic component corresponds to a dropdown menu (items, checkbox/radio items, sub-menus, separators). Omitted."
+    }
+  ]
+}

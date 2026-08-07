@@ -7,7 +7,10 @@
  */
 export { transform, transformFromJson, type TransformOutput } from "./transform/index.js";
 export { shadcnProfile, type Profile, type ComponentPlan, type SurfacePlanDirectives } from "./transform/profiles.js";
-export { loadProfile, profileSchema, ProfileLoadError, type ProfileLoadIssue } from "./transform/profile-load.js";
+export { loadProfile, profileSchema, profileSchemaV2, ProfileLoadError, type ProfileLoadIssue } from "./transform/profile-load.js";
+export { ProfileContractError, type ProfileContractIssue } from "./transform/validate-v2.js";
+export { ProfileParseError, type ParseIssue, type SurfaceV2 } from "./transform/parse-v2.js";
+export type { SurfaceFidelityEntry } from "./types.js";
 export { scaffoldProfile, type ScaffoldOptions, type ScaffoldResult, type ScaffoldNote } from "./transform/scaffold.js";
 export { validateCatalog, extractInstances, type ValidationReport, type GateResult } from "./validate/ajv.js";
 export {

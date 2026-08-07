@@ -3,9 +3,11 @@
  * approach A2UI uses in specification/scripts/validate.py
  * (draft 2020-12, strict:false, ajv-formats):
  *
- *  1. schema-compile + no-external-ref: ajv compiles the catalog AS a JSON Schema.
- *     Compilation fails on any unresolved `$ref`, proving the catalog is a valid,
- *     fully self-contained schema with zero external references.
+ *  1. schema-compile + no-external-ref: ajv compiles the catalog AS a JSON
+ *     Schema, no `$ref` points outside it, and — because ajv defers ref
+ *     resolution past compile() — every internal `$ref` is resolved by this
+ *     gate itself, so a dangling pointer is a pathed finding here rather than
+ *     a silent pass or a raw MissingRefError out of gate 3.
  *  2. catalog-shape: the catalog validates against the version-specific
  *     a2ui-catalog.meta.<ver>.json (the literal "catalog schema" check; this is what
  *     makes v0.9.1 vs v1.0 conformance distinct — theme vs surfaceProperties).
@@ -49,6 +51,55 @@ function externalRefs(node: unknown, acc: string[] = []): string[] {
   return acc;
 }
 
+/**
+ * Collect every INTERNAL `$ref` that does not resolve inside the catalog
+ * document, with the JSON path of the offending `$ref` keyword.
+ *
+ * This is what makes gate 1's documented guarantee true. ajv defers ref
+ * resolution past `compile()`, so a structural slot schema (or any other
+ * authored-schema channel) carrying `{$ref: "#/$defs/DoesNotExist"}` used to
+ * produce either all-gates-PASS (no instances checked) or a raw
+ * MissingRefError thrown out of gate 3 — pass-or-crash, never a finding.
+ * Resolving the pointers ourselves turns the whole class into a pathed gate
+ * failure at one boundary, for every channel at once.
+ */
+function danglingInternalRefs(root: unknown): string[] {
+  const bad: string[] = [];
+  const resolves = (pointer: string): boolean => {
+    if (pointer === "#" || pointer === "#/") return true;
+    if (!pointer.startsWith("#/")) return false; // #foo anchors are not used in our catalogs
+    let node: unknown = root;
+    for (const raw of pointer.slice(2).split("/")) {
+      const key = decodeURIComponent(raw).replaceAll("~1", "/").replaceAll("~0", "~");
+      if (Array.isArray(node)) {
+        const i = Number(key);
+        if (!Number.isInteger(i) || i < 0 || i >= node.length) return false;
+        node = node[i];
+      } else if (node && typeof node === "object" && key in (node as Record<string, unknown>)) {
+        node = (node as Record<string, unknown>)[key];
+      } else {
+        return false;
+      }
+    }
+    return true;
+  };
+  const walk = (node: unknown, at: string): void => {
+    if (Array.isArray(node)) {
+      node.forEach((n, i) => walk(n, `${at}/${i}`));
+    } else if (node && typeof node === "object") {
+      for (const [k, v] of Object.entries(node)) {
+        if (k === "$ref" && typeof v === "string" && v.startsWith("#") && !resolves(v)) {
+          bad.push(`${at}/$ref: '${v}' does not resolve inside this catalog`);
+        } else {
+          walk(v, `${at}/${k}`);
+        }
+      }
+    }
+  };
+  walk(root, "");
+  return bad;
+}
+
 /** Pull every component instance (object with string `component` + `id`) from a surface. */
 export function extractInstances(surface: unknown, acc: Json[] = []): Json[] {
   if (Array.isArray(surface)) {
@@ -68,8 +119,9 @@ export function validateCatalog(
 ): ValidationReport {
   const gates: GateResult[] = [];
 
-  // Gate 1 — schema compile + no external $ref.
+  // Gate 1 — schema compile + no external $ref + every internal $ref resolves.
   const exts = externalRefs(catalog);
+  const dangling = danglingInternalRefs(catalog);
   let compiled = false;
   let compileErr = "";
   try {
@@ -78,16 +130,18 @@ export function validateCatalog(
   } catch (e) {
     compileErr = e instanceof Error ? e.message : String(e);
   }
+  const selfContained = compiled && exts.length === 0 && dangling.length === 0;
   gates.push({
     name: "schema-compile + no-external-ref",
-    pass: compiled && exts.length === 0,
-    detail:
-      compiled && exts.length === 0
-        ? "Catalog compiles as a draft-2020-12 JSON Schema with only internal $refs."
-        : !compiled
-          ? `ajv failed to compile the catalog as a schema: ${compileErr}`
-          : `Catalog contains external $refs: ${[...new Set(exts)].join(", ")}`,
-    errors: exts.length ? [...new Set(exts)] : undefined,
+    pass: selfContained,
+    detail: selfContained
+      ? "Catalog compiles as a draft-2020-12 JSON Schema; every $ref is internal and resolves."
+      : !compiled
+        ? `ajv failed to compile the catalog as a schema: ${compileErr}`
+        : exts.length
+          ? `Catalog contains external $refs: ${[...new Set(exts)].join(", ")}`
+          : `Catalog is not self-contained: ${dangling.length} internal $ref(s) do not resolve.`,
+    errors: exts.length ? [...new Set(exts)] : dangling.length ? dangling : undefined,
   });
 
   // Gate 2 — catalog shape.
@@ -103,29 +157,38 @@ export function validateCatalog(
     errors: shapeOk ? undefined : (validateShape.errors ?? []).map(fmtErr),
   });
 
-  // Gate 3 — instances (only if compilable and a surface was supplied).
+  // Gate 3 — instances (only if the catalog is usable and a surface was supplied).
   if (surface !== undefined) {
-    if (!compiled) {
+    if (!compiled || dangling.length > 0) {
       gates.push({
         name: "instance",
         pass: false,
-        detail: "Skipped: catalog did not compile, so instances cannot be checked.",
+        detail: !compiled
+          ? "Skipped: catalog did not compile, so instances cannot be checked."
+          : "Skipped: catalog is not self-contained (gate 1 lists the dangling $refs), so instances cannot be checked.",
       });
     } else {
-      const ajv = newAjv();
-      ajv.addSchema(catalog as unknown as Json, catalog.$id);
-      const validateAny = ajv.getSchema(`${catalog.$id}#/$defs/anyComponent`);
-      const instances = extractInstances(surface);
+      // Belt and braces: gate 1 has already proven every ref resolves, but a
+      // raw ajv throw must never escape this function regardless.
       const failures: string[] = [];
-      if (!validateAny) {
-        failures.push("Could not resolve #/$defs/anyComponent from the catalog.");
-      } else {
-        for (const inst of instances) {
-          if (!validateAny(inst)) {
-            const where = `${inst.component}#${inst.id}`;
-            for (const e of validateAny.errors ?? []) failures.push(`${where}: ${fmtErr(e)}`);
+      let instances: Json[] = [];
+      try {
+        const ajv = newAjv();
+        ajv.addSchema(catalog as unknown as Json, catalog.$id);
+        const validateAny = ajv.getSchema(`${catalog.$id}#/$defs/anyComponent`);
+        instances = extractInstances(surface);
+        if (!validateAny) {
+          failures.push("Could not resolve #/$defs/anyComponent from the catalog.");
+        } else {
+          for (const inst of instances) {
+            if (!validateAny(inst)) {
+              const where = `${inst.component}#${inst.id}`;
+              for (const e of validateAny.errors ?? []) failures.push(`${where}: ${fmtErr(e)}`);
+            }
           }
         }
+      } catch (e) {
+        failures.push(`instance validation could not run: ${e instanceof Error ? e.message : String(e)}`);
       }
       gates.push({
         name: "instance",
