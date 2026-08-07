@@ -109,6 +109,26 @@ export type A2uiVersion = "0.9.1" | "1.0";
 // Fidelity reporting
 // ---------------------------------------------------------------------------
 
+/**
+ * What one surface transformation DID — the per-emission ledger, distinct
+ * from the catalog-level FidelityEntry below (which describes what a profile
+ * can carry in principle; this describes what one surface actually lost or
+ * gained). Additive channel: messages and warnings are byte-frozen for v1,
+ * so fidelity rides alongside them on EmitSurfaceResult, never inside them.
+ */
+export interface SurfaceFidelityEntry {
+  /** Where in the surface the content came from (JSON path, plus selector). */
+  source: string;
+  /** Where on the emitted instance it landed, or "(discarded)". */
+  destination: string;
+  /** The profile rule that caused it (route/collect origin, propMap key, or synthesis). */
+  origin: string;
+  /** What happened to the content. */
+  kind: "projected" | "moved" | "lifted" | "flattened" | "synthesized" | "wrapped" | "dropped" | "deduplicated";
+  class: FidelityClass;
+  note?: string;
+}
+
 export type FidelityClass =
   | "maps-cleanly"
   | "synthesis-defaults"

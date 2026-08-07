@@ -1,17 +1,34 @@
 /**
- * scaffoldProfile: a mechanical 1:1 draft Profile from a dspack contract.
+ * scaffoldProfile: a mechanical draft Profile from a dspack contract — in the
+ * v2 primitive language, honest about what it cannot decide.
  *
- * Seeded from the json-render CatalogModel (the judgment-free 1:1 IR): every
- * top-level contract component becomes a ComponentPlan with verbatim prop
- * projections; compound sub-components get subFlatten directives derived from
- * their *declared* `acceptsChildren` (text → asText, otherwise transparent).
+ * The old scaffold had two measured failures. For props-based contracts it
+ * emitted no surface plan at all, so any surface with children hit a hard
+ * throw — catalog-valid, surface-unusable, for exactly the idiom the docs
+ * call typical. And for compounds it INVENTED the judgment it should have
+ * surfaced: every sub auto-classified transparent-or-asText from
+ * `acceptsChildren`, which is precisely the guess that is wrong for a
+ * repeated item like `radio-group-item` (the measured T2 gap).
  *
- * The scaffold invents no judgment: no valueMaps, no casualties, no lossy
- * projections. Everything a human must review is returned as `notes` — the
- * scaffold's analog of dspack-export's `awaitingAuthorship`. The result is a
- * valid v1 profile document (loadProfile accepts it) whose transform passes
- * gates A1/A2 with full coverage; whether each mapping is *right* is the
- * author's call.
+ * This scaffold derives instead of guessing:
+ *
+ *  - identity and verbatim prop projections, as before — provable 1:1;
+ *  - a `children` route where the contract OBSERVABLY supports children:
+ *    the component appears with child nodes in a worked example, or declares
+ *    sub-components. Provenance lands in the synthNote;
+ *  - a `text` route where a worked example shows the component carrying text;
+ *  - sub-components are NOT decided. Each one is an explicit unresolved
+ *    decision: listed in `notes`, recorded under `x-scaffold.unresolved`, and
+ *    absent from the surface block — which the v2 contract gate then refuses
+ *    to transform, per sub, until the author decides (route, collect,
+ *    transparent, asText, or drop with a reason). A scaffold that transforms
+ *    before those decisions exist would be inventing them.
+ *
+ * The result loads (loadProfile accepts it). For a contract with no compound
+ * sub-families it transforms immediately; for one with compounds, transform
+ * refuses with the exact per-sub checklist. That refusal is the deliverable:
+ * the scaffold's job is to make the remaining judgment explicit, not to
+ * pretend it has been exercised.
  */
 import type { DspackDoc, DspackProp } from "../types.js";
 import { buildCatalogModel, type CatalogComponent } from "../targets/json-render/model.js";
@@ -33,7 +50,7 @@ export interface ScaffoldNote {
 }
 
 export interface ScaffoldResult {
-  /** A v1 profile *document* (includes profileVersion; loadProfile accepts it). */
+  /** A v2 profile *document* (includes profileVersion; loadProfile accepts it). */
   profile: Record<string, unknown>;
   /** Everything that needs human judgment before the profile is trustworthy. */
   notes: ScaffoldNote[];
@@ -41,7 +58,6 @@ export interface ScaffoldResult {
 
 const DYN_STRING = { $ref: "#/$defs/DynamicString" };
 const CHILD_LIST = { $ref: "#/$defs/ChildList" };
-const COMP_ID = { $ref: "#/$defs/ComponentId" };
 
 const TEXT_PLAN = {
   a2ui: "Text",
@@ -83,7 +99,6 @@ const COLUMN_PLAN = {
 
 interface SubDecl {
   id: string;
-  acceptsChildren?: string;
 }
 
 function subsOf(doc: DspackDoc, id: string): SubDecl[] {
@@ -96,14 +111,46 @@ function subsOf(doc: DspackDoc, id: string): SubDecl[] {
   return out;
 }
 
+interface Observation {
+  children?: string; // example id where the component was seen with child nodes
+  text?: string; // example id where it was seen carrying text
+}
+
+/**
+ * What the contract's own worked examples show each component doing. The
+ * example corpus is the contract's definition of "expressible", which makes
+ * this measurement, not judgment: a component observed with children needs a
+ * children story; one observed with text needs a text story.
+ */
+function observeExamples(doc: DspackDoc): Map<string, Observation> {
+  const seen = new Map<string, Observation>();
+  const examples = (doc as { examples?: Array<{ id?: string; surface?: { root?: unknown } }> }).examples ?? [];
+  const visit = (node: unknown, exampleId: string): void => {
+    if (!node || typeof node !== "object") return;
+    const n = node as { component?: string; text?: unknown; children?: unknown[]; slots?: Record<string, unknown[]> };
+    if (typeof n.component === "string") {
+      const entry = seen.get(n.component) ?? {};
+      const childNodes = [...(n.children ?? []), ...Object.values(n.slots ?? {}).flat()];
+      if (childNodes.length > 0 && entry.children === undefined) entry.children = exampleId;
+      if (typeof n.text === "string" && entry.text === undefined) entry.text = exampleId;
+      seen.set(n.component, entry);
+      for (const child of childNodes) visit(child, exampleId);
+    }
+  };
+  for (const ex of examples) visit(ex.surface?.root, ex.id ?? "(unnamed example)");
+  return seen;
+}
+
 export function scaffoldProfile(doc: DspackDoc, options: ScaffoldOptions): ScaffoldResult {
   const notes: ScaffoldNote[] = [];
   const model = buildCatalogModel(doc, {});
   const byId = new Map<string, CatalogComponent>(model.components.map((c) => [c.dspackId, c]));
   const topLevelIds = Object.keys(doc.components ?? {});
   const name = (id: string) => byId.get(id)?.name ?? id;
+  const observed = observeExamples(doc);
 
   const usedNames = new Set(topLevelIds.map((id) => name(id)));
+  const unresolvedByComponent: Record<string, string[]> = {};
 
   const components = topLevelIds.map((id) => {
     const entry = byId.get(id)!;
@@ -131,46 +178,68 @@ export function scaffoldProfile(doc: DspackDoc, options: ScaffoldOptions): Scaff
       .map(([propName]) => propName)
       .filter((propName) => propName in propMap);
 
+    const structural: Record<string, unknown> = {};
+    const routes: Array<Record<string, unknown>> = [];
+    const subs = subsOf(doc, id);
+    const seen = observed.get(id) ?? {};
+
+    // Children: only where the contract observably supports them — a worked
+    // example shows child nodes, or the component declares sub-components
+    // (whose instances arrive as its children in every surface).
+    const childrenBecause = seen.children
+      ? `observed with child nodes in worked example '${seen.children}'`
+      : subs.length > 0
+        ? `declares ${subs.length} sub-component(s), which arrive as its children in surfaces`
+        : undefined;
+    if (childrenBecause) {
+      structural.children = {
+        schema: CHILD_LIST,
+        description: "Child component IDs, in order.",
+        synthNote: `Scaffolded: ${childrenBecause}.`,
+      };
+      required.push("children");
+      routes.push({ from: ["children"], to: "slots:children" });
+    }
+
+    // Text: only where a worked example shows the component carrying it.
+    if (seen.text) {
+      structural.text = {
+        schema: DYN_STRING,
+        description: "The component's text content.",
+        synthNote: `Scaffolded: observed carrying text in worked example '${seen.text}'.`,
+      };
+      routes.push({ from: ["self.text"], to: "prop:text" });
+    }
+
+    if (!childrenBecause && !seen.text && Object.keys(propMap).length === 0) {
+      notes.push({
+        target: id,
+        note: "no declarative props, and never observed with children or text in a worked example; the contract likely needs enrichment before this mapping is useful.",
+      });
+    }
+
     const plan: Record<string, unknown> = {
       a2ui: entry.name,
       dspackId: id,
       commons: ["ComponentCommon"],
-      structural: {},
+      structural,
       required,
     };
     if (Object.keys(propMap).length > 0) plan.propMap = propMap;
-    else
-      notes.push({
-        target: id,
-        note: "no declarative props were scaffolded; the contract likely needs prop enrichment before this mapping is useful.",
-      });
+    if (routes.length > 0) plan.surface = { routes };
 
-    const subs = subsOf(doc, id);
+    // Sub-components: explicit unresolved decisions, never guesses. The v2
+    // contract gate refuses to transform until each is decided — that refusal,
+    // with its per-sub checklist, is the scaffold handing judgment to its
+    // owner rather than exercising it.
     if (subs.length > 0) {
-      const transparent = subs.filter((s) => s.acceptsChildren !== "text").map((s) => s.id);
-      const asText = Object.fromEntries(subs.filter((s) => s.acceptsChildren === "text").map((s) => [s.id, "body"]));
-      plan.structural = {
-        child: {
-          schema: COMP_ID,
-          description: "The ID of the single child component. Wrap multiple elements in a Column and pass its ID.",
-          synthNote:
-            "Scaffolded: the compound's sub-components flatten (subFlatten) and collapse to a single, possibly Column-wrapped, child slot.",
-        },
-      };
-      (plan.required as string[]).push("child");
-      plan.surfacePlan = { childProp: "child", subFlatten: { transparent, asText } };
-      plan.subCoverage = Object.fromEntries(
-        subs.map((s) => [
-          s.id,
-          s.acceptsChildren === "text"
-            ? "text -> synthesized Text (variant body) [scaffolded from acceptsChildren: text — review]"
-            : "transparent grouping: children splice inline, in order [scaffolded — review]",
-        ]),
-      );
-      notes.push({
-        target: id,
-        note: `compound scaffolded from declared acceptsChildren (${subs.length} sub-components: ${transparent.length} transparent, ${Object.keys(asText).length} asText); review each subCoverage line and pick text variants.`,
-      });
+      unresolvedByComponent[id] = subs.map((s) => s.id);
+      for (const sub of subs) {
+        notes.push({
+          target: `${id}.${sub.id}`,
+          note: "unresolved sub-component: decide route (consume its text/label), collect (repeated items), transparent (dissolve), asText (re-identify), or drop (with a reason). transform() refuses until this is decided.",
+        });
+      }
     }
 
     return plan;
@@ -201,11 +270,11 @@ export function scaffoldProfile(doc: DspackDoc, options: ScaffoldOptions): Scaff
   }
 
   const profile: Record<string, unknown> = {
-    profileVersion: "1",
+    profileVersion: "2",
     catalogTitle: options.catalogTitle ?? `${doc.name} — A2UI catalog (compiled from dspack)`,
     catalogDescription:
       options.catalogDescription ??
-      `A2UI catalog compiled from the ${doc.name} dspack contract by scaffoldProfile. Mechanical 1:1 draft: review the scaffold notes before trusting any mapping.`,
+      `A2UI catalog compiled from the ${doc.name} dspack contract by scaffoldProfile. Mechanical draft in the v2 primitive language: review the scaffold notes, and resolve every listed sub-component decision, before trusting any mapping.`,
     catalogIdBase: options.catalogIdBase,
     instructions: options.instructions ?? "For layout, use the Column component to organize other components.",
     primaryColorToken,
@@ -218,6 +287,14 @@ export function scaffoldProfile(doc: DspackDoc, options: ScaffoldOptions): Scaff
       wrapComponent: "Column",
       wrapChildrenProp: "children",
     },
+    ...(Object.keys(unresolvedByComponent).length > 0
+      ? {
+          "x-scaffold": {
+            unresolved: unresolvedByComponent,
+            note: "Every listed sub-component is an authoring decision the scaffold deliberately did not make. transform() refuses until each is resolved in the owning plan's surface block.",
+          },
+        }
+      : {}),
   };
 
   notes.push({

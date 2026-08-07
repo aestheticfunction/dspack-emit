@@ -14,6 +14,48 @@ import { INLINED_DEFS } from "./inline-defs.js";
 import type { MappingResult } from "./mapping.js";
 import type { Profile } from "./profiles.js";
 
+/**
+ * The catalog's function surface, from the profile's declared FunctionPlans:
+ * a documentation section, the name enum for FunctionCall.call, and the
+ * per-function anyFunction branches that validate each call's args shape.
+ * Definitions are declarative schemas — implementations live in renderers,
+ * exactly as A2UI intends; nothing executable exists here.
+ */
+function buildFunctions(profile: Profile): {
+  section: Record<string, Json>;
+  names: string[];
+  anyFunction: Json;
+} | null {
+  const declared = profile.functions;
+  if (!declared || Object.keys(declared).length === 0) return null;
+  const names = Object.keys(declared).sort();
+  const section: Record<string, Json> = {};
+  const branches: Json[] = [];
+  for (const name of names) {
+    const fn = declared[name];
+    section[name] = {
+      description: fn.description,
+      returnType: fn.returns,
+      ...(fn.args ? { args: fn.args as Json } : {}),
+    } as Json;
+    const requiredArgs =
+      fn.args && Array.isArray((fn.args as { required?: unknown }).required) &&
+      ((fn.args as { required: unknown[] }).required.length > 0);
+    branches.push({
+      type: "object",
+      properties: {
+        call: { const: name },
+        ...(fn.args ? { args: fn.args as Json } : { args: { type: "object", maxProperties: 0 } }),
+        returnType: { const: fn.returns },
+      },
+      // A function whose declared args carry required params cannot be called
+      // without them — the args object itself becomes required.
+      required: requiredArgs ? ["call", "args"] : ["call"],
+    } as Json);
+  }
+  return { section, names, anyFunction: { oneOf: branches } as Json };
+}
+
 const VER_SEGMENT: Record<A2uiVersion, string> = {
   "0.9.1": "v0_9_1",
   "1.0": "v1_0",
@@ -37,6 +79,27 @@ export function emitCatalog(
     anyComponent,
   };
 
+  // Declared functions: the profile's function vocabulary becomes the
+  // catalog's `functions` section, and — the fail-closed half — FunctionCall
+  // regains the upstream anyFunction constraint our inlined copy dropped
+  // (inline-defs.ts) back when no catalog declared any functions to call.
+  // With the constraint restored, an instance calling an UNDECLARED function
+  // fails gate A3 instead of passing silently. Profiles that declare no
+  // functions (every v1 profile) emit byte-identically to before.
+  const functions = buildFunctions(profile);
+  if (functions) {
+    $defs.anyFunction = functions.anyFunction;
+    const fc = $defs.FunctionCall as { properties: { call: Json }; oneOf?: Json[] };
+    fc.properties.call = {
+      type: "string",
+      description: "The name of the function to call. Must be declared in this catalog's functions section.",
+      enum: functions.names,
+    } as Json;
+    // The upstream shape our inline copy dropped: the whole call object must
+    // match one declared function's branch (name AND args shape together).
+    fc.oneOf = [{ $ref: "#/$defs/anyFunction" } as Json];
+  }
+
   if (version === "0.9.1") {
     $defs.theme = themeDef(result);
   } else {
@@ -50,6 +113,7 @@ export function emitCatalog(
     description: profile.catalogDescription,
     catalogId: id,
     components: result.components,
+    ...(functions ? { functions: functions.section } : {}),
     $defs,
   };
 
@@ -63,6 +127,7 @@ export function emitCatalog(
       instructions: profile.instructions,
       catalogId: catalog.catalogId,
       components: catalog.components,
+      ...(catalog.functions ? { functions: catalog.functions } : {}),
       $defs: catalog.$defs,
     };
   }

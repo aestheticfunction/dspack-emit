@@ -4,6 +4,7 @@
 import type { A2uiCatalog, A2uiVersion, DspackDoc } from "../types.js";
 import { shadcnProfile, type Profile } from "./profiles.js";
 import { mapDspack, type MappingResult } from "./mapping.js";
+import { validateProfileAgainstContract } from "./validate-v2.js";
 import { emitCatalog } from "./emit.js";
 import { buildReport, type ReportBundle } from "./report.js";
 import { validateCatalog, type ValidationReport } from "../validate/ajv.js";
@@ -26,6 +27,10 @@ export function transform(
   if (major !== "0") {
     throw new Error(`Unsupported dspack major version '${doc.dspack}'. This PoC targets dspack 0.x.`);
   }
+
+  // v2 profiles fail closed against the contract before anything emits;
+  // v1 behaviour is frozen (report + --strict-coverage instead).
+  validateProfileAgainstContract(profile, doc);
 
   const mapping = mapDspack(doc, profile);
   const catalog = emitCatalog(mapping, version, profile);

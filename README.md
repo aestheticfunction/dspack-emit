@@ -88,11 +88,21 @@ npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 1.0 --out o
 
 ### Profiles as JSON (`--profile`, `loadProfile`, `scaffoldProfile`)
 
-The `Profile` has always been pure data; it is now also *reachable* as data.
-A `*.profile.json` document (schema:
-[`src/transform/profile.v1.schema.json`](src/transform/profile.v1.schema.json),
-a 1:1 mirror of the `Profile` type plus a `profileVersion: "1"` envelope)
-drives the engine byte-identically to a TypeScript profile. The package
+The `Profile` has always been pure data; it is now also *reachable* as data,
+in two languages dispatched explicitly on `profileVersion`:
+
+- **v2 — the primitive language** (schema:
+  [`src/transform/profile.v2.schema.json`](src/transform/profile.v2.schema.json))
+  authors the transformation model directly: Identity / Route / Collect in a
+  closed string syntax, plus declared catalog `functions`. New profiles should
+  be v2 — [docs/PROFILES.md](docs/PROFILES.md) teaches it.
+- **v1 — compatibility syntax** (schema:
+  [`src/transform/profile.v1.schema.json`](src/transform/profile.v1.schema.json)),
+  the original surface-plan directives. Frozen: v1 documents keep loading and
+  emitting byte-identically, indefinitely, desugaring into the same internal
+  model the engine reads for both languages.
+
+Either drives the engine byte-identically to a TypeScript profile. The package
 installs a `dspack-emit` bin, so out-of-repo contracts emit from any CI:
 
 ```bash

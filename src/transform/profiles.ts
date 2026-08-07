@@ -44,6 +44,30 @@ export interface Profile {
     wrapComponent: string;
     wrapChildrenProp: string;
   };
+  /**
+   * A2UI catalog functions this profile declares (v2 language only), keyed by
+   * call name. Emitted into the catalog's `functions` section and enforced on
+   * every FunctionCall an instance makes: calling an undeclared function fails
+   * gate A3. Definitions are declarative schemas for the call's args — the
+   * implementations live in renderers, exactly as A2UI intends; nothing
+   * executable can be expressed here.
+   */
+  functions?: Record<string, FunctionPlan>;
+  /**
+   * Which profile language this Profile was loaded from. Stamped by
+   * loadProfile ("v2" only); absent for v1 documents and TS-authored
+   * profiles. The transform layer keys fail-closed contract validation on it —
+   * v1 behaviour is frozen, v2 refuses what v1 merely warned about.
+   */
+  language?: "v2";
+}
+
+/** One declared A2UI catalog function: the schema of its wire-level call. */
+export interface FunctionPlan {
+  description: string;
+  returns: "string" | "number" | "boolean" | "array" | "object";
+  /** JSON Schema (object form) validating the call's `args`; omit when arg-less. */
+  args?: Record<string, unknown>;
 }
 
 export interface ComponentPlan {
@@ -60,8 +84,15 @@ export interface ComponentPlan {
   propMap?: Record<string, PropPlan>;
   /** A2UI required property names (the `component` const is added automatically). */
   required: string[];
-  /** How the surface emitter projects a dspack-surface node onto this component. */
+  /** How the surface emitter projects a dspack-surface node onto this component (v1 language). */
   surfacePlan?: SurfacePlanDirectives;
+  /**
+   * The v2 spelling of the same question, authored in the internal
+   * Identity / Route / Collect vocabulary (see parse-v2.ts). A plan carries
+   * one language or the other, never both — the schemas enforce it per
+   * document, and surfaceModelOf dispatches on which is present.
+   */
+  surface?: import("./parse-v2.js").SurfaceV2;
   /**
    * Explicit per-sub-component disposition for compound components: every
    * contract sub id -> one line naming how the surface emitter treats it
