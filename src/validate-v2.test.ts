@@ -102,7 +102,7 @@ describe("v2 contract validation refuses before emission", () => {
       ...RESOLVED,
       subs: { ...RESOLVED.subs, "card-sidebar": "transparent" },
     });
-    expect(out).toContain("'card-sidebar' is not a declared sub-component of 'card'");
+    expect(out).toContain("'card-sidebar' is neither a declared sub-component of 'card' nor a component");
   });
 
   it("reading an undeclared prop into a renamed destination refuses; the passthrough shape passes", () => {

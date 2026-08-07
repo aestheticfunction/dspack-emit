@@ -1066,70 +1066,65 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "sections": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                },
+                "child": {
+                  "$ref": "#/$defs/ComponentId"
+                }
+              },
+              "required": [
+                "title",
+                "child"
+              ],
+              "additionalProperties": false
+            }
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.project-workspace-panels'."
+          "description": "The tab sections: a title and the panel it reveals.",
+          "synthNote": "A2UI models paired trigger/panel families as one array of {title, child} records (T3 declared join; the worked example keys on ids)."
+        }
+      },
+      "propMap": {
+        "defaultValue": {
+          "a2ui": "defaultValue",
+          "kind": "string"
         }
       },
       "required": [
-        "children"
+        "sections"
       ],
-      "propMap": {
-        "value": {
-          "a2ui": "value",
-          "kind": "string",
-          "description": "The value of the selected tab in controlled mode. While this is set the component never changes panels on its own; the app must respond to onValueChange."
-        },
-        "defaultValue": {
-          "a2ui": "defaultValue",
-          "kind": "string",
-          "description": "The tab selected on first render in uncontrolled mode. Supply this or value: with neither, nothing is selected and every panel stays hidden."
-        },
-        "orientation": {
-          "a2ui": "orientation",
-          "kind": "enum",
-          "targetEnum": [
-            "horizontal",
-            "vertical"
-          ],
-          "default": "horizontal",
-          "description": "Layout axis of the tablist. This also decides which arrow keys traverse the triggers, so it must match how the triggers are actually laid out."
-        },
-        "dir": {
-          "a2ui": "dir",
-          "kind": "enum",
-          "targetEnum": [
-            "ltr",
-            "rtl"
-          ],
-          "description": "Reading direction of the tablist, which determines which arrow key advances. Inherited from an ancestor Radix DirectionProvider when omitted; set it explicitly only when this tab set reads in a different direction from the page."
-        },
-        "activationMode": {
-          "a2ui": "activationMode",
-          "kind": "enum",
-          "targetEnum": [
-            "automatic",
-            "manual"
-          ],
-          "default": "automatic",
-          "description": "Whether arrow-key focus also selects. Switch to manual only when automatic selection would be slow enough to punish keyboard traversal."
-        },
-        "asChild": {
-          "a2ui": "asChild",
-          "kind": "boolean",
-          "description": "Merges the root's props onto its single child element instead of rendering a div. Rarely needed; the root carries no semantics of its own."
-        }
-      },
       "surface": {
-        "routes": [
+        "collects": [
           {
-            "from": [
-              "children"
+            "of": [
+              "tabs-trigger"
             ],
-            "to": "slots:children"
+            "into": "prop:sections",
+            "item": {
+              "title": "self.text",
+              "value": "self.id"
+            },
+            "join": {
+              "with": [
+                "tabs-content"
+              ],
+              "on": {
+                "left": "self.id",
+                "right": "self.id"
+              },
+              "fields": {
+                "child": "children"
+              }
+            }
           }
         ]
       }
@@ -1394,6 +1389,13 @@
         "ComponentCommon"
       ],
       "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The group-level label naming the choice being made.",
+          "synthNote": "Sourced by T1 form-label donation when the group sits inside a form field; a group without one relies on context."
+        },
         "options": {
           "schema": {
             "type": "array",
@@ -1439,6 +1441,18 @@
             "into": "prop:options",
             "item": {
               "value": "self.id"
+            },
+            "join": {
+              "with": [
+                "label"
+              ],
+              "on": {
+                "left": "self.id",
+                "right": "self.props.htmlFor"
+              },
+              "fields": {
+                "label": "self.text"
+              }
             }
           }
         ]
@@ -1941,7 +1955,7 @@
       "commit": "48643ff (aestheticfunction/dspack, merged as b573637 / PR #35)",
       "sha256": "ea87346f85965937cb2b18e3998f19da7ba3cee41b41572638d657f20b3f5565"
     },
-    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts); zero casualties declared, zero fresh judgment.",
+    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts); zero casualties declared, zero fresh judgment.",
     "unresolvedAreDeliberate": "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better."
   }
 }

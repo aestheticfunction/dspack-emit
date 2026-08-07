@@ -760,35 +760,141 @@ class SurfaceEmitter {
     // never synthesis. Sibling content the collect does not claim follows
     // the ordinary consumed-subtree accounting (closeCollects).
     if (collect.fields) {
-      const records: Json[] = [];
-      const visitItems = (n: SurfaceNode, nPath: string): void => {
+      const itemLocal = (n: SurfaceNode, sel: Selector): Json[keyof Json] | undefined =>
+        sel.kind === "self-text" ? n.text : sel.kind === "self-id" ? n.id : sel.kind === "self-prop" ? (n.props?.[sel.prop] as Json[keyof Json] | undefined) : undefined;
+
+      // Gather left items and (when a join is declared) joined counterparts,
+      // both in document order.
+      const lefts: Array<{ n: SurfaceNode; nPath: string }> = [];
+      const rights: Array<{ n: SurfaceNode; nPath: string }> = [];
+      const gather = (n: SurfaceNode, nPath: string): void => {
         if (collect.of.includes(n.component)) {
-          const record: Json = {};
-          for (const [fieldName, sel] of Object.entries(collect.fields!)) {
-            const value =
-              sel.kind === "self-text" ? n.text : sel.kind === "self-id" ? n.id : sel.kind === "self-prop" ? (n.props?.[sel.prop] as Json[keyof Json] | undefined) : undefined;
-            if (value !== undefined) record[fieldName] = value as Json[keyof Json];
-          }
-          records.push(record);
-          this.diagnostics.pushFidelity(
-            {
-              source: `${nPath} (${n.component})`,
-              destination: collect.as.kind === "inline" ? "(inline)" : collect.as.name,
-              origin: collect.origin,
-              kind: "moved",
-              class: "maps-cleanly",
-              note: `item record { ${Object.keys(record).join(", ")} } collected`,
-            },
-            treePath,
-            Band.BeforeChildren,
-            Phase.TableBody,
-            rule,
-          );
+          lefts.push({ n, nPath });
           return; // an item's subtree is the item's; nested items do not re-match
         }
-        collectChildren(n).forEach((c, i) => visitItems(c.node, `${nPath}${c.suffix}[${i}]`));
+        if (collect.join?.with.includes(n.component)) {
+          rights.push({ n, nPath });
+          return;
+        }
+        collectChildren(n).forEach((c, i) => gather(c.node, `${nPath}${c.suffix}[${i}]`));
       };
-      collectChildren(node).forEach((c, i) => visitItems(c.node, `${path}${c.suffix}[${i}]`));
+      collectChildren(node).forEach((c, i) => gather(c.node, `${path}${c.suffix}[${i}]`));
+
+      // T3: the declared key join. Every edge refuses — the profile names
+      // the relation, the emitter never infers one.
+      const counterparts = new Map<string, { n: SurfaceNode; nPath: string }>();
+      if (collect.join) {
+        const j = collect.join;
+        const seenLeft = new Map<string, string>();
+        for (const item of lefts) {
+          const key = itemLocal(item.n, j.leftKey);
+          if (typeof key !== "string" || key === "") {
+            throw new EmitSurfaceError(
+              `join '${j.origin}': item '${item.n.component}' carries no key (${describeSelector(j.leftKey)}); a keyless item cannot participate in a declared join`,
+              item.nPath,
+            );
+          }
+          const prior = seenLeft.get(key);
+          if (prior !== undefined) {
+            throw new EmitSurfaceError(
+              `join '${j.origin}': duplicate left key '${key}' (also at ${prior}); join keys must be unique on each side`,
+              item.nPath,
+            );
+          }
+          seenLeft.set(key, item.nPath);
+        }
+        for (const cp of rights) {
+          const key = itemLocal(cp.n, j.rightKey);
+          if (typeof key !== "string" || key === "") {
+            throw new EmitSurfaceError(
+              `join '${j.origin}': counterpart '${cp.n.component}' carries no key (${describeSelector(j.rightKey)})`,
+              cp.nPath,
+            );
+          }
+          if (counterparts.has(key)) {
+            throw new EmitSurfaceError(
+              `join '${j.origin}': duplicate right key '${key}'; join keys must be unique on each side`,
+              cp.nPath,
+            );
+          }
+          if (!seenLeft.has(key)) {
+            throw new EmitSurfaceError(
+              `join '${j.origin}': counterpart '${cp.n.component}' key '${key}' matches no item; a dangling counterpart is a contradiction, not surplus`,
+              cp.nPath,
+            );
+          }
+          counterparts.set(key, cp);
+        }
+      }
+
+      const records: Json[] = [];
+      for (const item of lefts) {
+        const record: Json = {};
+        for (const [fieldName, sel] of Object.entries(collect.fields)) {
+          const value = itemLocal(item.n, sel);
+          if (value !== undefined) record[fieldName] = value;
+        }
+        this.diagnostics.pushFidelity(
+          {
+            source: `${item.nPath} (${item.n.component})`,
+            destination: collect.as.name,
+            origin: collect.origin,
+            kind: "moved",
+            class: "maps-cleanly",
+            note: `item record { ${Object.keys(record).join(", ")} } collected`,
+          },
+          treePath,
+          Band.BeforeChildren,
+          Phase.TableBody,
+          rule,
+        );
+
+        if (collect.join) {
+          const j = collect.join;
+          const key = itemLocal(item.n, j.leftKey) as string;
+          const cp = counterparts.get(key);
+          if (!cp && !j.optional) {
+            throw new EmitSurfaceError(
+              `join '${j.origin}': item '${item.n.component}' key '${key}' has no counterpart among [${j.with.join(", ")}]; exactly one is required (declare optional to relax to 0..1)`,
+              item.nPath,
+            );
+          }
+          if (cp) {
+            for (const [fieldName, jSel] of Object.entries(j.fields)) {
+              if ("kind" in jSel && jSel.kind === "joined-children") {
+                // The slot-valued field: the counterpart's children emit as
+                // instances; the record carries the reference. Repetition's
+                // ratified slot form — not T4 multi-slot routing.
+                const kids = collectChildren(cp.n);
+                if (kids.length === 0) continue;
+                const ids = kids.map((k, ki) =>
+                  this.emitNode(k.node, `${cp.nPath}${k.suffix}[${ki}]`, [...treePath, Band.Children, records.length]),
+                );
+                record[fieldName] =
+                  ids.length === 1 ? ids[0] : this.wrapInColumn(ids, `${slug(key)}`, cp.nPath, treePath);
+              } else {
+                const value = itemLocal(cp.n, jSel as Selector);
+                if (value !== undefined) record[fieldName] = value;
+              }
+            }
+            this.diagnostics.pushFidelity(
+              {
+                source: `${cp.nPath} (${cp.n.component})`,
+                destination: `${collect.as.name} @ item '${key}'`,
+                origin: j.origin,
+                kind: "joined",
+                class: "maps-cleanly",
+                note: `counterpart joined on key '${key}' -> fields { ${Object.keys(j.fields).join(", ")} }`,
+              },
+              treePath,
+              Band.BeforeChildren,
+              Phase.TableBody,
+              rule,
+            );
+          }
+        }
+        records.push(record);
+      }
       if (records.length > 0) {
         const landed = this.write(instance, collect.as.name, records as Json[keyof Json]);
         if (!landed) {
@@ -880,7 +986,7 @@ class SurfaceEmitter {
     path: string,
     treePath: readonly number[],
   ): void {
-    const claimedByCollect = new Set(model.collects.flatMap((c) => c.of));
+    const claimedByCollect = new Set(model.collects.flatMap((c) => [...c.of, ...(c.join?.with ?? [])]));
     for (const child of collectChildren(node)) {
       const c = child.node.component;
       if (claimedByCollect.has(c) || this.claimedByRoute(model, c)) continue;

@@ -93,11 +93,16 @@ export function validateProfileAgainstContract(profile: Profile, doc: DspackDoc)
     const declaredProps = new Set(Object.keys(component.props ?? {}));
     const model = surfaceModelOf(plan);
 
+    // A referenced name resolves against the compound's declared subs OR the
+    // contract's top-level components — a T3 join may pair a sub-family with
+    // a component family (the production radio-group joins its items to
+    // sibling `label` COMPONENTS via htmlFor), and surfaces carry both kinds
+    // of node identically.
     for (const sub of namedSubs(model)) {
-      if (!declaredSubs.includes(sub)) {
+      if (!declaredSubs.includes(sub) && !(sub in components)) {
         issues.push({
           path: at,
-          message: `'${sub}' is not a declared sub-component of '${plan.dspackId}' in this contract (declared: ${declaredSubs.length ? declaredSubs.join(", ") : "none"})`,
+          message: `'${sub}' is neither a declared sub-component of '${plan.dspackId}' nor a component of this contract (declared subs: ${declaredSubs.length ? declaredSubs.join(", ") : "none"})`,
         });
       }
     }

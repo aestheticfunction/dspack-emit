@@ -90,12 +90,52 @@ export const SHADCN_V3_T1_SURFACES: Record<string, SurfaceV2> = {
  * Each entry carries the full receiving plan (structural options schema) —
  * unlike T1's transparent plans, a collecting plan IS a catalog component.
  */
+export const SHADCN_V3_T3_PLANS: Record<string, Record<string, unknown>> = {
+  tabs: {
+    a2ui: "Tabs",
+    dspackId: "tabs",
+    commons: ["ComponentCommon"],
+    structural: {
+      sections: {
+        schema: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { title: { type: "string" }, value: { type: "string" }, child: { $ref: "#/$defs/ComponentId" } },
+            required: ["title", "child"],
+            additionalProperties: false,
+          },
+        },
+        description: "The tab sections: a title and the panel it reveals.",
+        synthNote: "A2UI models paired trigger/panel families as one array of {title, child} records (T3 declared join; the worked example keys on ids).",
+      },
+    },
+    propMap: { defaultValue: { a2ui: "defaultValue", kind: "string" } },
+    required: ["sections"],
+    surface: {
+      collects: [
+        {
+          of: ["tabs-trigger"],
+          into: "prop:sections",
+          item: { title: "self.text", value: "self.id" },
+          join: { with: ["tabs-content"], on: { left: "self.id", right: "self.id" }, fields: { child: "children" } },
+        },
+      ],
+    },
+  },
+};
+
 export const SHADCN_V3_T2_PLANS: Record<string, Record<string, unknown>> = {
   "radio-group": {
     a2ui: "RadioGroup",
     dspackId: "radio-group",
     commons: ["ComponentCommon"],
     structural: {
+      label: {
+        schema: { type: "string" },
+        description: "The group-level label naming the choice being made.",
+        synthNote: "Sourced by T1 form-label donation when the group sits inside a form field; a group without one relies on context.",
+      },
       options: {
         schema: { type: "array", items: { type: "object", properties: { value: { type: "string" }, label: { type: "string" } }, required: ["value"], additionalProperties: false } },
         description: "The selectable options, one record per item.",
@@ -107,7 +147,21 @@ export const SHADCN_V3_T2_PLANS: Record<string, Record<string, unknown>> = {
       defaultValue: { a2ui: "defaultValue", kind: "string" },
     },
     required: ["options"],
-    surface: { collects: [{ of: ["radio-group-item"], into: "prop:options", item: { value: "self.id" } }] },
+    // T3: the htmlFor->id join carries each item's sibling label into its
+    // record. Value still sources from self.id — a documented limitation:
+    // ids are DOM identity, not semantic values ("reimbursement-payroll" vs
+    // defaultValue "payroll"); the real shadcn API declares value on the
+    // item, and the contract gap is filed upstream.
+    surface: {
+      collects: [
+        {
+          of: ["radio-group-item"],
+          into: "prop:options",
+          item: { value: "self.id" },
+          join: { with: ["label"], on: { left: "self.id", right: "self.props.htmlFor" }, fields: { label: "self.text" } },
+        },
+      ],
+    },
   },
   select: {
     a2ui: "Select",
