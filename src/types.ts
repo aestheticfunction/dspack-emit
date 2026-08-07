@@ -134,7 +134,9 @@ export interface SurfaceFidelityEntry {
     | "dropped"
     | "deduplicated"
     /** T1: a value harvested in a dissolving boundary, written onto its single eligible control. */
-    | "donated";
+    | "donated"
+    /** T3: a counterpart's data merged into a collected record via a declared key join. */
+    | "joined";
   class: FidelityClass;
   note?: string;
 }

@@ -196,6 +196,14 @@ export interface Collect {
    */
   fields?: Record<string, Selector>;
   /**
+   * T3: a DECLARED key join onto a sibling sub-family. Each left item's key
+   * must match exactly one counterpart (0..1 when `optional`); zero, several,
+   * duplicate keys on either side, missing key values, and dangling
+   * counterparts all refuse. The profile names the relation; the emitter
+   * never infers one — no positions, no nearest-sibling, no similarity.
+   */
+  join?: CollectJoin;
+  /**
    * True when every repetition's cells concatenate into ONE flat list (v1's
    * header semantics: two header rows append into a single column list);
    * false when each repetition becomes its own record. Declared data — the
@@ -222,6 +230,26 @@ export interface Collect {
  * Sub-components this plan explicitly discards, with the authored reason. v1
  * spelled this inside `subTable.drops`; it is not a table concept.
  */
+export interface CollectJoin {
+  /** The joined sub-family (sub-component or component ids). */
+  with: string[];
+  /** Key extracted from each LEFT item (item-local selector). */
+  leftKey: Selector;
+  /** Key extracted from each JOINED item (item-local selector). */
+  rightKey: Selector;
+  /**
+   * Record fields sourced from the JOINED side. Item-local selectors, plus
+   * the slot-valued `{ kind: "joined-children" }`: the counterpart's children
+   * emit as instances and the record carries the reference — Repetition's
+   * ratified slot-valued field, NOT T4 multi-slot routing.
+   */
+  fields: Record<string, Selector | { kind: "joined-children" }>;
+  /** 0..1 counterparts allowed when true; exactly one required otherwise. */
+  optional: boolean;
+  /** Which authored rule produced this — provenance for the ledger. */
+  origin: string;
+}
+
 export type Drops = Record<string, string>;
 
 /** The whole of how a plan projects a surface node. Replaces SurfacePlanDirectives. */
@@ -329,6 +357,7 @@ export function referencedSubs(model: SurfaceModel): Map<string, string> {
 
   const walk = (c: Collect): void => {
     for (const id of c.of) note(id, `collected into ${describeDestination(c.as)}`);
+    if (c.join) for (const id of c.join.with) note(id, `joined into ${describeDestination(c.as)}`);
     for (const field of Object.values(c.item ?? {})) {
       if (isCollect(field)) walk(field);
       else for (const s of field.from) fromSelector(s, `collected into ${describeDestination(field.to)}`);

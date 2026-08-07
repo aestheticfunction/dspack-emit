@@ -211,6 +211,32 @@ join):
 ]
 ```
 
+T3's **declared key join** pairs a repeated family with a sibling family —
+the profile names the relation, the emitter never infers one (no positions,
+no nearest-sibling, no similarity). Fields from the joined side may be
+item-local selectors or the literal `"children"` (the slot-valued field: the
+counterpart's children emit as instances and the record carries the
+reference):
+
+```jsonc
+"collects": [
+  { "of": ["radio-group-item"], "into": "prop:options",
+    "item": { "value": "self.id" },
+    "join": { "with": ["label"],
+              "on": { "left": "self.id", "right": "self.props.htmlFor" },
+              "fields": { "label": "self.text" } } },
+  { "of": ["tabs-trigger"], "into": "prop:sections",
+    "item": { "title": "self.text", "value": "self.id" },
+    "join": { "with": ["tabs-content"], "on": { "left": "self.id", "right": "self.id" },
+              "fields": { "child": "children" } } }
+]
+```
+
+Every correctness edge refuses: missing keys, duplicate keys on either side,
+zero counterparts (unless `optional: true` relaxes to 0..1 — the absence then
+lands with gate A3), and dangling counterparts. Joined data ledgers as
+`joined`/maps-cleanly with the key and both endpoints named.
+
 Table-mode expresses the three-level text shape:
 
 ```jsonc

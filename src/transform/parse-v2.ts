@@ -26,6 +26,7 @@ import {
   emptySurfaceModel,
   isCollect,
   type Collect,
+  type CollectJoin,
   type Destination,
   type Donation,
   type Route,
@@ -80,11 +81,24 @@ export interface SurfaceV2Collect {
   /**
    * T2 item-mode: each matching descendant becomes one record; every field
    * resolves against THAT item's own node. Selectors: `self.text`,
-   * `self.props.<prop>`, `self.id`. No joins, no sibling reads — the
-   * htmlFor-paired sibling label the production radio-group carries is T3's
-   * declared join, measured and out of scope here.
+   * `self.props.<prop>`, `self.id`.
    */
   item?: Record<string, string>;
+  /**
+   * T3: a DECLARED key join onto a sibling sub-family. `on.left` extracts the
+   * key from each item, `on.right` from each counterpart; `fields` source
+   * record fields from the JOINED side (item-local selectors, or the literal
+   * `"children"` for the slot-valued field: the counterpart's children emit
+   * as instances and the record carries the reference). `optional: true`
+   * relaxes exactly-one to 0..1. The profile names the relation; nothing is
+   * ever inferred from position or adjacency.
+   */
+  join?: {
+    with: string[];
+    on: { left: string; right: string };
+    fields: Record<string, string>;
+    optional?: boolean;
+  };
 }
 
 export interface SurfaceV2Donate {
@@ -427,6 +441,53 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
         if (Object.keys(c.item!).length === 0) issues.push({ path: `${at}/item`, message: "an item-mode collect names at least one field" });
         continue;
       }
+      // T3 join, only on item-mode collects.
+      let join: CollectJoin | undefined;
+      if (c.join) {
+        const jAt = `${at}/join`;
+        const left = parseSelector(c.join.on.left);
+        const right = parseSelector(c.join.on.right);
+        const itemLocal = (sel: Selector | null): sel is Selector =>
+          sel !== null && (sel.kind === "self-text" || sel.kind === "self-prop" || sel.kind === "self-id");
+        let jOk = true;
+        if (!itemLocal(left)) {
+          issues.push({ path: `${jAt}/on/left`, message: `'${c.join.on.left}' is not a join key source (item-local: self.id, self.props.<prop>, self.text)` });
+          jOk = false;
+        }
+        if (!itemLocal(right)) {
+          issues.push({ path: `${jAt}/on/right`, message: `'${c.join.on.right}' is not a join key source (item-local: self.id, self.props.<prop>, self.text)` });
+          jOk = false;
+        }
+        const jFields: CollectJoin["fields"] = {};
+        for (const [fieldName, raw] of Object.entries(c.join.fields)) {
+          if (raw === "children") {
+            jFields[fieldName] = { kind: "joined-children" };
+            continue;
+          }
+          const sel = parseSelector(raw);
+          if (!itemLocal(sel)) {
+            issues.push({ path: `${jAt}/fields/${fieldName}`, message: `'${raw}' is not a joined-side field source (item-local selectors, or "children" for the slot-valued field)` });
+            jOk = false;
+            continue;
+          }
+          jFields[fieldName] = sel;
+        }
+        for (const fieldName of Object.keys(jFields)) {
+          if (fieldName in fields) {
+            issues.push({ path: `${jAt}/fields/${fieldName}`, message: `field '${fieldName}' is already sourced from the left item; one record field, one source` });
+            jOk = false;
+          }
+        }
+        if (Object.keys(jFields).length === 0) {
+          issues.push({ path: `${jAt}/fields`, message: "a join names at least one joined-side field — a join that contributes nothing is not a relation" });
+          jOk = false;
+        }
+        if (jOk) {
+          join = { with: c.join.with, leftKey: left as Selector, rightKey: right as Selector, fields: jFields, optional: c.join.optional === true, origin: `v2:collects/${i}/join` };
+        } else {
+          continue;
+        }
+      }
       claim(into.name, WriteOrder.Collect, `collects/${i}`, `${at}/into`);
       model.collects.push({
         order: WriteOrder.Collect,
@@ -434,6 +495,7 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
         of: c.of,
         as: into,
         fields,
+        ...(join ? { join } : {}),
         origin: `v2:collects/${i}`,
       });
       continue;
