@@ -1,0 +1,223 @@
+{
+ "model": "qwen3.6:35b",
+ "contract": "3.2.0 @ dspack d50f049",
+ "gen": "0.3.0 (S2 containment)",
+ "emit": "0.5.0+rebaseline (feat/containment-rebaseline c43a121)",
+ "intents": [
+  "destructive-action",
+  "record-collection",
+  "structured-input",
+  "preference-settings",
+  "record-detail",
+  "overlay-task"
+ ],
+ "runs": [
+  {
+   "intent": "destructive-action",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 17,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 17,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 18,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required sub-component 'alert-dialog-cancel' (min 1) not found among descendants (found 0).",
+   "seconds": 1430
+  },
+  {
+   "intent": "record-collection",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 34,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 34,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 34,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required category 'interactive' (min 1) not found among descendants (found 0) — no descendant of this node is a 'interactive' member; member",
+   "seconds": 938
+  },
+  {
+   "intent": "structured-input",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 25,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 25,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 25,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required category 'interactive' (min 1) not found among descendants (found 0) — no descendant of this node is a 'interactive' member; member",
+   "seconds": 413
+  },
+  {
+   "intent": "preference-settings",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:FAIL S3:PASS",
+     "containment": {
+      "nodes": 39,
+      "violations": 3
+     },
+     "s2ContainmentFindings": 3
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:FAIL S3:PASS",
+     "containment": {
+      "nodes": 30,
+      "violations": 3
+     },
+     "s2ContainmentFindings": 3
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 23,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required sub-component 'alert-dialog-cancel' (min 1) not found among descendants (found 0).",
+   "seconds": 265
+  },
+  {
+   "intent": "record-detail",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 28,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 28,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 28,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required category 'interactive' (min 1) not found among descendants (found 0) — no descendant of this node is a 'interactive' member; member",
+   "seconds": 295
+  },
+  {
+   "intent": "overlay-task",
+   "outcome": "failed-gate",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:FAIL S3:FAIL",
+     "containment": {
+      "nodes": 14,
+      "violations": 1
+     },
+     "s2ContainmentFindings": 1
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:PASS",
+     "containment": {
+      "nodes": 10,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 1,
+   "firstBlocker": "emit refusal: unknown component 'dialog': not a mapped component of the 'shadcn/ui v3 — coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compo",
+   "seconds": 257
+  }
+ ]
+}
