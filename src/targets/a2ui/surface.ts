@@ -1011,16 +1011,25 @@ class SurfaceEmitter {
   }
 
   /**
-   * T1: a transparent root dissolves into the synthesized wrap component,
-   * which takes the literal id "root" at components[0] — the entry point
-   * renderers require. Reserve-first keeps pre-order; the dissolve reuses the
-   * ordinary boundary machinery (dispositions, donations, refusals).
+   * T1, the general root-transparency rule (ratified): a transparent node is
+   * a semantic statement that the dspack node has no emitted identity — valid
+   * at the root too. The root dissolves through the ORDINARY machinery
+   * (presented as a child of a synthetic host, so boundary donations, sub
+   * dispositions, and every refusal apply), then:
+   *
+   *   - exactly one surviving descendant  -> it IS the root (id "root",
+   *     components[0]) — the existing root invariant, preserved
+   *     deterministically;
+   *   - several survivors                 -> they wrap in the synthesized
+   *     wrap component, which is structural TRANSPORT, not a replacement
+   *     identity for the transparent component;
+   *   - nothing survives                  -> refuse. Fabricating content for
+   *     an empty root would be synthesis of meaning, not structure.
+   *
+   * No component is special-cased by name.
    */
   emitTransparentRoot(root: SurfaceNode, path: string): string {
     const { wrapComponent, wrapChildrenProp } = this.profile.surfaceSynthesis;
-    const id = this.allocateId("root", path, { treePath: [], band: Band.BeforeChildren, phase: Phase.IdAllocation, rule: 0 });
-    const index = this.components.length;
-    this.components.push({});
 
     // Present the root AS A CHILD of a synthetic host, so the ordinary
     // rewriting machinery performs the whole dissolution — the plan-transparent
@@ -1028,6 +1037,37 @@ class SurfaceEmitter {
     // dispositions, and every refusal — with no root-only special case.
     const host = { component: "__root_host__", children: [root] } as unknown as SurfaceNode;
     const spliced = this.rewriteChildren(host, emptySurfaceModel(), path, []);
+
+    if (spliced.length === 0) {
+      throw new EmitSurfaceError(
+        `transparent root '${root.component}' dissolved to nothing — no descendant survives to become the root, and fabricating one is refused`,
+        path,
+      );
+    }
+
+    if (spliced.length === 1) {
+      const only = spliced[0];
+      this.diagnostics.pushFidelity(
+        {
+          source: `${path} (${root.component})`,
+          destination: "root",
+          origin: `plan.${root.component}`,
+          kind: "moved",
+          class: "maps-cleanly",
+          note: "transparent root: its single surviving descendant is preserved as the root instance",
+        },
+        [],
+        Band.BeforeChildren,
+        Phase.ChildRewrite,
+      );
+      return "textVariant" in only
+        ? this.emitTextPrimitive(only.text, "root", path, [Band.Children, 0], Phase.TextChild, 0, only.textVariant)
+        : this.emitNode(only.node, path, [Band.Children, 0], only.donations ?? []);
+    }
+
+    const id = this.allocateId("root", path, { treePath: [], band: Band.BeforeChildren, phase: Phase.IdAllocation, rule: 0 });
+    const index = this.components.length;
+    this.components.push({});
     const childIds = spliced.map((child, i) =>
       "textVariant" in child
         ? this.emitTextPrimitive(child.text, `root_${slug(child.textVariant)}`, path, [Band.Children, i], Phase.TextChild, 0, child.textVariant)
@@ -1045,7 +1085,7 @@ class SurfaceEmitter {
       Phase.Wrap,
     );
     this.diagnostics.pushFidelity(
-      { source: `${path} (${childIds.length} risen children)`, destination: `synthesized ${wrapComponent} 'root'`, origin: "surfaceSynthesis.wrapComponent", kind: "wrapped", class: "synthesis-defaults", note: "a transparent root still needs the instance renderers start from" },
+      { source: `${path} (${childIds.length} risen children)`, destination: `synthesized ${wrapComponent} 'root'`, origin: "surfaceSynthesis.wrapComponent", kind: "wrapped", class: "synthesis-defaults", note: "structural transport for several risen children — not a replacement identity for the transparent root" },
       [],
       Band.AfterChildren,
       Phase.Wrap,

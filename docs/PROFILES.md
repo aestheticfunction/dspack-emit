@@ -295,9 +295,14 @@ to three inputs. Fail-closed on every edge:
 - nothing to donate is not an error — the destination stays absent and gate
   A3 arbitrates. Relocation, never synthesis.
 
-A **transparent root** dissolves into the profile's synthesized wrap
-component, which becomes the `root` instance renderers start from — recorded
-as `surface-synthesized-wrap`, never silent.
+**Root transparency** is the same semantic statement at the root, resolved by
+a general three-case rule (no component is special-cased by name): exactly one
+surviving descendant **is** the root, preserving the root invariant
+deterministically; several survivors wrap in the synthesized wrap component —
+structural *transport*, not a replacement identity; nothing surviving
+**refuses**, because fabricating content for an empty root would synthesize
+meaning, not structure. All three outcomes are recorded in fidelity and
+provenance.
 
 ## The transformation ledger and `--strict-surface`
 

@@ -257,11 +257,7 @@ describe("T1 fail-closed boundaries", () => {
     }
   });
 
-  it("a transparent root dissolves into the synthesized layout root — recorded, never silent", () => {
-    // Deviation from the foundation-era "root transparency refuses" rule,
-    // made deliberately: the target example itself roots at `form`. The
-    // established arity discipline answers it — risen children wrap in the
-    // profile's wrap component, which becomes components[0] id "root".
+  it("root-transparency, single survivor: the descendant IS the root (no transport wrap)", () => {
     const s = surfaceOf({
       component: "form",
       children: [
@@ -274,13 +270,39 @@ describe("T1 fail-closed boundaries", () => {
         },
       ],
     });
+    const { messages, fidelity } = emitSurface(s, contract, { profile: t1Profile() });
+    const components = (messages[1] as { updateComponents: { components: Array<Record<string, unknown>> } })
+      .updateComponents.components;
+    expect(components[0]).toMatchObject({ id: "root", component: "TextField", label: "Lone" });
+    expect(components.some((c) => c.component === "Column")).toBe(false);
+    expect(fidelity.some((f) => f.note?.includes("single surviving descendant is preserved as the root"))).toBe(true);
+  });
+
+  it("root-transparency, several survivors: the synthesized wrap is structural transport", () => {
+    const s = surfaceOf({
+      component: "form",
+      children: [
+        { component: "form-item", children: [{ component: "form-label", text: "A" }, { component: "input", props: { type: "text" } }] },
+        { component: "form-item", children: [{ component: "form-label", text: "B" }, { component: "input", props: { type: "email" } }] },
+      ],
+    });
     const { messages, warnings, fidelity } = emitSurface(s, contract, { profile: t1Profile() });
     const components = (messages[1] as { updateComponents: { components: Array<Record<string, unknown>> } })
       .updateComponents.components;
     expect(components[0]).toMatchObject({ id: "root", component: "Column" });
-    expect(components.some((c) => c.component === "TextField" && c.label === "Lone")).toBe(true);
-    expect(warnings.some((w) => w.code === "surface-synthesized-wrap")).toBe(true);
-    expect(fidelity.some((f) => f.kind === "wrapped" && f.note?.includes("transparent root"))).toBe(true);
+    expect(warnings.some((w) => w.code === "surface-synthesized-wrap" && w.message.includes("transparent root"))).toBe(true);
+    expect(fidelity.some((f) => f.kind === "wrapped" && f.note?.includes("structural transport"))).toBe(true);
+  });
+
+  it("root-transparency, nothing survives: refuse — never fabricate", () => {
+    const s = surfaceOf({ component: "form", children: [{ component: "form-message" }] });
+    try {
+      emitSurface(s, contract, { profile: t1Profile() });
+      expect.unreachable("an empty transparent root must refuse");
+    } catch (e) {
+      expect(e).toBeInstanceOf(EmitSurfaceError);
+      expect((e as Error).message).toContain("dissolved to nothing");
+    }
   });
 
   it("the control's own content beats donated context, and the loss is ledgered", () => {
