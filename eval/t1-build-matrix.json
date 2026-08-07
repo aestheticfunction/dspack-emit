@@ -1,0 +1,117 @@
+{
+ "model": "qwen3.6:35b",
+ "intents": [
+  "destructive-action",
+  "record-collection",
+  "structured-input",
+  "preference-settings",
+  "record-detail",
+  "overlay-task"
+ ],
+ "runs": [
+  {
+   "variant": "pre-T1",
+   "intent": "destructive-action",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: unknown component 'separator': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-co",
+   "seconds": 105
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "record-collection",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstBlocker": "failed-lint-exhausted",
+   "seconds": 424
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "structured-input",
+   "outcome": "passed",
+   "attempts": 1,
+   "firstBlocker": null,
+   "seconds": 57
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "preference-settings",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: unknown component 'form': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compone",
+   "seconds": 105
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "record-detail",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: unknown component 'avatar': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compo",
+   "seconds": 97
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "overlay-task",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstBlocker": "failed-lint-exhausted",
+   "seconds": 219
+  },
+  {
+   "variant": "post-T1",
+   "intent": "destructive-action",
+   "outcome": "failed-gate",
+   "attempts": 3,
+   "firstBlocker": "emit refusal: donation boundary 'form-item' (subs.form-item) requires exactly one eligible control declaring [label]; found 0 \u2014 a donation relocates onto one control, never b",
+   "seconds": 347
+  },
+  {
+   "variant": "post-T1",
+   "intent": "record-collection",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: donation boundary 'form-item' (subs.form-item) requires exactly one eligible control declaring [label]; found 0 \u2014 a donation relocates onto one control, never b",
+   "seconds": 102
+  },
+  {
+   "variant": "post-T1",
+   "intent": "structured-input",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: donation boundary 'form-item' (subs.form-item) requires exactly one eligible control declaring [label]; found 0 \u2014 a donation relocates onto one control, never b",
+   "seconds": 66
+  },
+  {
+   "variant": "post-T1",
+   "intent": "preference-settings",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: unknown component 'field-set': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-co",
+   "seconds": 94
+  },
+  {
+   "variant": "post-T1",
+   "intent": "record-detail",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: donation boundary 'form-item' (subs.form-item) requires exactly one eligible control declaring [label]; found 0 \u2014 a donation relocates onto one control, never b",
+   "seconds": 63
+  },
+  {
+   "variant": "post-T1",
+   "intent": "overlay-task",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: unknown component 'dialog': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compo",
+   "seconds": 21
+  }
+ ],
+ "method": {
+  "contract": "eval/shadcn-v3.dspack.json (pinned production v3)",
+  "profiles": "PRE = six transplanted plans, all else intentionallyOmitted; POST = PRE + the T1 form resolution (both derived from the eval fixture; loadProfile-valid, contract-gate-clean)",
+  "model": "qwen3.6:35b via ollama \u2014 NOTE: not comparable to the historical 4/6 baseline (that model is no longer on this machine); PRE here is the internally consistent baseline",
+  "maxRepairs": 2,
+  "harness": "/tmp scratch with dspack-gen@0.2.1 + the T1-build emitter (packed from this branch)"
+ },
+ "finding": "PRE 1/6 passed; blockers were representation gaps (unknown 'form', 'separator', 'avatar') plus 2 lint-exhausted. POST 0/6: four runs reach the donation boundary and refuse with found-0 \u2014 probing the generated surfaces (t1-build-matrix-probe-surface.json) shows the model emits form-control with literal TEXT and no input node at all: forms with zero interactive controls, which the contract permits (lint-clean) and the emitter correctly refuses. The frontier moved out of the emitter into CONTRACT GOVERNANCE: the v3 contract needs a composition rule requiring form-control to contain an interactive control. Owner-authored, dspack-side, reported not implemented here. Remaining POST blockers: 'field-set' (unmapped v3 component) and 'dialog' (T4)."
+}
