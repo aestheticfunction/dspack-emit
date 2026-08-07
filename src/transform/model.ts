@@ -52,10 +52,35 @@ import type { Json } from "../types.js";
 export type Identity =
   /** Emits one instance of the named A2UI component. */
   | { kind: "mapped"; a2ui: string }
-  /** Emits nothing; its children rise to the destination its parent would use. */
-  | { kind: "transparent" }
+  /**
+   * Emits nothing; its children rise to the destination its parent would use.
+   * A transparent identity may carry DONATIONS (T1's constrained control
+   * donation): each dissolved instance harvests the donated values from its
+   * own subtree and hands them to the single eligible emitted control within
+   * that subtree — the boundary IS the scope, which is what makes a
+   * three-field form donate three labels to three inputs instead of refusing.
+   */
+  | { kind: "transparent"; donate?: Donation[] }
   /** Emits as the profile's synthesized text primitive, carrying its subtree text. */
   | { kind: "as-text"; variant: string };
+
+/**
+ * One constrained control donation (the ratified `onto: "control"` mechanism):
+ * a value harvested inside a dissolving boundary, written onto the boundary's
+ * single eligible control. Fail-closed at emit: zero or multiple eligible
+ * controls refuse; the receiving plan must declare the destination. The write
+ * is carried EXPLICITLY in the rewritten child list and applied as a pre-write
+ * when the control's own emission constructs its instance — never by mutating
+ * another node's committed instance mid-traversal.
+ */
+export interface Donation {
+  /** Where the value comes from, inside the dissolving boundary. */
+  from: Selector;
+  /** The receiving prop on the control (`prop:` destinations only). */
+  to: Destination;
+  /** Which authored rule produced this — provenance for the ledger. */
+  origin: string;
+}
 
 /**
  * Where information comes from. A closed enumeration: every selector is
@@ -188,6 +213,15 @@ export type Drops = Record<string, string>;
 
 /** The whole of how a plan projects a surface node. Replaces SurfacePlanDirectives. */
 export interface SurfaceModel {
+  /**
+   * T1: this plan's component emits NO instance — every node using it
+   * dissolves at its parent's child-collection, children rising in place,
+   * with `transparentDonate` harvested per dissolved instance. Refused for
+   * the surface root at emit (renderers need components[0] = "root").
+   */
+  transparent: boolean;
+  /** Donations carried by a transparent PLAN (per dissolved instance). */
+  transparentDonate: Donation[];
   routes: Route[];
   collects: Collect[];
   /** Identity assigned to named sub-components met inside this node's subtree. */
@@ -202,6 +236,8 @@ export interface SurfaceModel {
 }
 
 export const emptySurfaceModel = (): SurfaceModel => ({
+  transparent: false,
+  transparentDonate: [],
   routes: [],
   collects: [],
   subIdentity: {},
@@ -287,8 +323,14 @@ export function referencedSubs(model: SurfaceModel): Map<string, string> {
   for (const c of model.collects) walk(c);
 
   for (const [id, identity] of Object.entries(model.subIdentity)) {
-    note(id, identity.kind === "as-text" ? `re-identified as text (${identity.variant})` : "transparent grouping");
+    if (identity.kind === "as-text") {
+      note(id, `re-identified as text (${identity.variant})`);
+    } else if (identity.kind === "transparent") {
+      note(id, "transparent grouping");
+      for (const d of identity.donate ?? []) fromSelector(d.from, `donated to ${describeDestination(d.to)}`);
+    }
   }
+  for (const d of model.transparentDonate) fromSelector(d.from, `donated to ${describeDestination(d.to)}`);
   for (const [id, reason] of Object.entries(model.drops)) note(id, `dropped: ${reason}`);
 
   return subs;

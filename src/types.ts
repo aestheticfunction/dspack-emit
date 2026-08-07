@@ -124,7 +124,17 @@ export interface SurfaceFidelityEntry {
   /** The profile rule that caused it (route/collect origin, propMap key, or synthesis). */
   origin: string;
   /** What happened to the content. */
-  kind: "projected" | "moved" | "lifted" | "flattened" | "synthesized" | "wrapped" | "dropped" | "deduplicated";
+  kind:
+    | "projected"
+    | "moved"
+    | "lifted"
+    | "flattened"
+    | "synthesized"
+    | "wrapped"
+    | "dropped"
+    | "deduplicated"
+    /** T1: a value harvested in a dissolving boundary, written onto its single eligible control. */
+    | "donated";
   class: FidelityClass;
   note?: string;
 }

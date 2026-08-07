@@ -256,6 +256,54 @@ every sub-component surfaced as an explicit unresolved decision that
 transform refuses until you make it. The refusal is the point — it is your
 work checklist, not an error to silence.
 
+## T1 — transparent identity and control donation
+
+Some components have no visual identity of their own: a `form` wrapper, a
+`field` group. A plan may declare its component **transparent** — it emits no
+instance, its children rise to the destination its parent would have used,
+and it declares no catalog surface (`structural`, `propMap`, `required` stay
+empty; routes and collects refuse; no catalog entry is emitted).
+
+```jsonc
+{ "a2ui": "Form", "dspackId": "form", "commons": ["ComponentCommon"],
+  "structural": {}, "required": [],
+  "surface": {
+    "transparent": true,
+    "subs": {
+      "form-field":   "transparent",
+      "form-control": "transparent",
+      "form-item":    { "transparent": { "donate": [
+                          { "from": "sub(form-label).text", "to": "prop:label" } ] } },
+      "form-description": { "asText": "caption" },
+      "form-message":     { "drop": "validation state is runtime data" }
+    } } }
+```
+
+**Donation** (`donate`, the constrained `onto: "control"` mechanism) moves a
+value harvested inside a dissolving boundary onto that boundary's **single
+eligible control** — the unique spliced replacement whose plan declares every
+donated destination. The boundary is the scope: attaching the donation to
+`form-item` (not `form`) is what lets a three-field form donate three labels
+to three inputs. Fail-closed on every edge:
+
+- zero eligible controls refuse; several refuse — donation relocates onto
+  one control, never broadcasts;
+- eligibility is declared, never guessed;
+- donations apply **after** the control's own writes, first-wins: its
+  authored content beats inherited context, and the ledger records the true
+  outcome either way (`donated`/maps-cleanly, or dropped/lossy);
+- nothing to donate is not an error — the destination stays absent and gate
+  A3 arbitrates. Relocation, never synthesis.
+
+**Root transparency** is the same semantic statement at the root, resolved by
+a general three-case rule (no component is special-cased by name): exactly one
+surviving descendant **is** the root, preserving the root invariant
+deterministically; several survivors wrap in the synthesized wrap component —
+structural *transport*, not a replacement identity; nothing surviving
+**refuses**, because fabricating content for an empty root would synthesize
+meaning, not structure. All three outcomes are recorded in fidelity and
+provenance.
+
 ## The transformation ledger and `--strict-surface`
 
 Every emission returns `fidelity` alongside the byte-frozen `messages` and

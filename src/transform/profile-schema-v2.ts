@@ -300,6 +300,44 @@ export const profileSchemaV2: Record<string, unknown> = {
             "^x-": {}
           },
           "properties": {
+            "transparent": {
+              "oneOf": [
+                {
+                  "const": true
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "donate"
+                  ],
+                  "properties": {
+                    "donate": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "from",
+                          "to"
+                        ],
+                        "properties": {
+                          "from": {
+                            "type": "string",
+                            "pattern": "^(self\\.text|sub\\([a-z][a-z0-9-]*(\\|[a-z][a-z0-9-]*)*\\)\\.text)$"
+                          },
+                          "to": {
+                            "type": "string",
+                            "pattern": "^prop:[A-Za-z][A-Za-z0-9]*$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
             "routes": {
               "type": "array",
               "items": {
@@ -392,6 +430,53 @@ export const profileSchemaV2: Record<string, unknown> = {
                 "oneOf": [
                   {
                     "const": "transparent"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "transparent"
+                    ],
+                    "properties": {
+                      "transparent": {
+                        "oneOf": [
+                          {
+                            "const": true
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "donate"
+                            ],
+                            "properties": {
+                              "donate": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "from",
+                                    "to"
+                                  ],
+                                  "properties": {
+                                    "from": {
+                                      "type": "string",
+                                      "pattern": "^(self\\.text|sub\\([a-z][a-z0-9-]*(\\|[a-z][a-z0-9-]*)*\\)\\.text)$"
+                                    },
+                                    "to": {
+                                      "type": "string",
+                                      "pattern": "^prop:[A-Za-z][A-Za-z0-9]*$"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
                   },
                   {
                     "type": "object",

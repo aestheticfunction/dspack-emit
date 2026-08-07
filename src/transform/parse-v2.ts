@@ -14,12 +14,11 @@
  * computed destination names, and no cross-instance routing. Those absences
  * are the design: a plan you cannot write is a plan nobody has to audit.
  *
- * Capability note: v2 in this foundation expresses exactly the transformation
- * surface the engine has today — the v1 semantic surface, respelled. The
- * grammar refuses spellings whose engine support has not landed (plan-level
- * `transparent` identity, `onto` donation, `joinOn` pairing, multi-slot
- * children routing). Each arrives with its capability class (T1–T5), as an
- * addition to this grammar, never as a reinterpretation of it.
+ * Capability note: the grammar admits exactly what the engine can emit. T1
+ * (transparent identity + constrained control donation) landed as the
+ * `transparent` / `donate` spellings below; spellings whose engine support
+ * has not landed (`joinOn` pairing — T3, multi-slot children routing — T4,
+ * variant identity — T5) are still refused, never reinterpreted.
  */
 import type { ComponentPlan } from "./profiles.js";
 import {
@@ -28,6 +27,7 @@ import {
   isCollect,
   type Collect,
   type Destination,
+  type Donation,
   type Route,
   type Selector,
   type SurfaceModel,
@@ -79,9 +79,26 @@ export interface SurfaceV2Collect {
   cells: string[];
 }
 
-export type SurfaceV2Sub = "transparent" | { asText: string } | { drop: string };
+export interface SurfaceV2Donate {
+  /** `self.text` or `sub(<id>|…).text` — where the donated value comes from. */
+  from: string;
+  /** `prop:<name>` on the boundary's single eligible control. */
+  to: string;
+}
+
+export type SurfaceV2Sub =
+  | "transparent"
+  | { transparent: true | { donate: SurfaceV2Donate[] } }
+  | { asText: string }
+  | { drop: string };
 
 export interface SurfaceV2 {
+  /**
+   * T1 transparent identity: this component emits no instance; children rise.
+   * `true`, or an object carrying constrained control donations scoped to
+   * each dissolved instance's subtree.
+   */
+  transparent?: true | { donate: SurfaceV2Donate[] };
   routes?: SurfaceV2Route[];
   collects?: SurfaceV2Collect[];
   /** Identity or disposition of named sub-components met in this node's subtree. */
@@ -189,9 +206,52 @@ function compatible(s: Selector, to: Destination): boolean {
  * self-props are declared, derived coverage is complete) run at transform
  * time, where the contract is in hand — see validate-v2.ts.
  */
+/** Parses one donate entry; donation selectors and destinations are narrower than routes'. */
+function parseDonation(d: SurfaceV2Donate, at: string, issues: ParseIssue[], origin: string): Donation | null {
+  const from = parseSelector(d.from);
+  if (!from || (from.kind !== "self-text" && from.kind !== "sub-text")) {
+    issues.push({ path: `${at}/from`, message: `'${d.from}' is not a donation source (donations harvest text: self.text or sub(<id>|…).text)` });
+    return null;
+  }
+  const to = parseDestination(d.to);
+  if (!to || to.kind !== "prop") {
+    issues.push({ path: `${at}/to`, message: `'${d.to}' is not a donation destination (donations write prop:<name> on the receiving control)` });
+    return null;
+  }
+  return { from, to, origin };
+}
+
 export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: string): SurfaceModel {
   const issues: ParseIssue[] = [];
   const model = emptySurfaceModel();
+
+  // T1: transparent identity. A transparent plan emits nothing, so nothing it
+  // could declare for an instance is meaningful — routes, collects, structural
+  // slots, propMap, required all refuse. Only sub dispositions (for its own
+  // dissolved subtree) and donations survive.
+  if (surface.transparent !== undefined) {
+    model.transparent = true;
+    if (typeof surface.transparent === "object") {
+      surface.transparent.donate.forEach((d, i) => {
+        const parsed = parseDonation(d, `${path}/transparent/donate/${i}`, issues, `v2:transparent/donate/${i}`);
+        if (parsed) model.transparentDonate.push(parsed);
+      });
+    }
+    if ((surface.routes ?? []).length > 0 || (surface.collects ?? []).length > 0) {
+      issues.push({ path, message: "a transparent plan emits no instance; routes and collects have nowhere to land (donations are the only writes it may carry)" });
+    }
+    for (const [field, label] of [
+      [plan.structural ?? {}, "structural"],
+      [plan.propMap ?? {}, "propMap"],
+    ] as const) {
+      if (Object.keys(field).length > 0) {
+        issues.push({ path, message: `a transparent plan declares no catalog surface; remove its ${label} block` });
+      }
+    }
+    if ((plan.required ?? []).length > 0) {
+      issues.push({ path, message: "a transparent plan declares no catalog surface; remove its required list" });
+    }
+  }
 
   // The plan's own declared destination names: structural slots plus the
   // a2ui-side names its propMap writes. Gate A3 catches an OMITTED property
@@ -359,6 +419,15 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
     const at = `${path}/subs/${sub}`;
     if (disposition === "transparent") {
       model.subIdentity[sub] = { kind: "transparent" };
+    } else if (typeof disposition === "object" && "transparent" in disposition) {
+      const donate: Donation[] = [];
+      if (typeof disposition.transparent === "object") {
+        disposition.transparent.donate.forEach((d, i) => {
+          const parsed = parseDonation(d, `${at}/transparent/donate/${i}`, issues, `v2:subs/${sub}/donate/${i}`);
+          if (parsed) donate.push(parsed);
+        });
+      }
+      model.subIdentity[sub] = donate.length > 0 ? { kind: "transparent", donate } : { kind: "transparent" };
     } else if ("asText" in disposition) {
       model.subIdentity[sub] = { kind: "as-text", variant: disposition.asText };
     } else {

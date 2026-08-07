@@ -820,27 +820,30 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {
-        "children": {
-          "schema": {
-            "$ref": "#/$defs/ChildList"
-          },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.expense-report-form'."
-        }
-      },
-      "required": [
-        "children"
-      ],
+      "structural": {},
+      "required": [],
       "surface": {
-        "routes": [
-          {
-            "from": [
-              "children"
-            ],
-            "to": "slots:children"
+        "transparent": true,
+        "subs": {
+          "form-field": "transparent",
+          "form-control": "transparent",
+          "form-item": {
+            "transparent": {
+              "donate": [
+                {
+                  "from": "sub(form-label).text",
+                  "to": "prop:label"
+                }
+              ]
+            }
+          },
+          "form-description": {
+            "asText": "caption"
+          },
+          "form-message": {
+            "drop": "validation state is runtime data the declarative surface does not carry"
           }
-        ]
+        }
       }
     },
     {
@@ -1971,7 +1974,7 @@
       "commit": "48643ff (aestheticfunction/dspack, merged as b573637 / PR #35)",
       "sha256": "ea87346f85965937cb2b18e3998f19da7ba3cee41b41572638d657f20b3f5565"
     },
-    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling; zero casualties declared, zero fresh judgment.",
+    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions proven in src/t1.test.ts; zero casualties declared, zero fresh judgment.",
     "unresolvedAreDeliberate": "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better."
   }
 }

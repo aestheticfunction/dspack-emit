@@ -45,7 +45,7 @@ import { collectChildren } from "../csr.js";
 import { Band, Diagnostics, Phase } from "./diagnostics.js";
 import { surfaceModelOf } from "../../transform/desugar.js";
 import { validateProfileAgainstContract } from "../../transform/validate-v2.js";
-import { describeSelector, isCollect, WriteOrder, type Collect, type Route, type Selector, type SurfaceModel } from "../../transform/model.js";
+import { describeSelector, emptySurfaceModel, isCollect, WriteOrder, type Collect, type Donation, type Route, type Selector, type SurfaceModel } from "../../transform/model.js";
 
 export class EmitSurfaceError extends Error {
   constructor(
@@ -105,8 +105,18 @@ export function emitSurface(
   for (const plan of profile.components) {
     if (plan.dspackId) byDspackId.set(plan.dspackId, plan);
   }
+  // T1: a transparent ROOT still needs an instance renderers can start from
+  // (components[0], id "root"). The established arity discipline answers it:
+  // the root dissolves and its risen children wrap in the profile's
+  // synthesized wrap component, which becomes the root — synthesis, recorded,
+  // never silent. (ex.expense-report-form roots at `form` directly; refusing
+  // transparent roots would refuse the exact failure T1 exists to fix.)
   const emitter = new SurfaceEmitter(profile, byDspackId);
-  const rootId = emitter.emitNode(surface.root, "$.root");
+  const rootPlan = byDspackId.get(surface.root.component);
+  const rootId =
+    rootPlan && surfaceModelOf(rootPlan).transparent
+      ? emitter.emitTransparentRoot(surface.root, "$.root")
+      : emitter.emitNode(surface.root, "$.root");
 
   const surfaceId = options.surfaceId ?? slug(surface.intent);
   const theme: Json = { agentDisplayName: `${doc.name} via dspack` };
@@ -144,6 +154,25 @@ export function slug(value: string): string {
     .replace(/^_+|_+$/g, "");
   return s || "surface";
 }
+/**
+ * T1: one donation, resolved at its dissolving boundary and carried
+ * EXPLICITLY in the rewritten child list until the receiving control's own
+ * emission applies it as a first-wins pre-write. The committed instance of
+ * another node is never mutated; ordering cannot affect output because the
+ * write happens inside the control's own construction, in donation order.
+ */
+interface PendingDonation {
+  prop: string;
+  value: string;
+  origin: string;
+  donorPath: string;
+  donorComponent: string;
+}
+
+type RewrittenChild =
+  | { node: SurfaceNode; suffix: string; donations?: PendingDonation[] }
+  | { text: string; textVariant: string };
+
 class SurfaceEmitter {
   readonly components: Json[] = [];
   readonly diagnostics = new Diagnostics();
@@ -161,7 +190,7 @@ class SurfaceEmitter {
    * desugar.ts; if any of them appears below, the compatibility boundary has
    * leaked (src/engine-boundary.test.ts fails on exactly that).
    */
-  emitNode(node: SurfaceNode, path: string, treePath: readonly number[] = []): string {
+  emitNode(node: SurfaceNode, path: string, treePath: readonly number[] = [], donations: PendingDonation[] = []): string {
     const plan = this.byDspackId.get(node.component);
     if (!plan) {
       // A declared casualty refuses with its authored reason — the refusal is
@@ -211,6 +240,29 @@ class SurfaceEmitter {
     // (except where a route declares `overwrite`); ordering of DIAGNOSTICS is
     // the explicit phase model, never this loop's order.
     this.applyOperations(node, model, instance, id, path, treePath);
+
+    // T1 donations: contextual values a dissolved wrapper handed to this
+    // control, applied AFTER the control's own writes, first-wins — inherited
+    // context fills what the control left absent and never beats its own
+    // authored content. The ledger records exactly what happened either way.
+    for (const d of donations) {
+      const landed = this.write(instance, d.prop, d.value as Json[keyof Json]);
+      this.diagnostics.pushFidelity(
+        {
+          source: `${d.donorPath} (${d.donorComponent}.text)`,
+          destination: `${d.prop} @ ${path} (${node.component})`,
+          origin: d.origin,
+          kind: landed ? "donated" : "dropped",
+          class: landed ? "maps-cleanly" : "lossy",
+          note: landed
+            ? `donated by '${d.donorComponent}' to '${node.component}' — the dissolving boundary's single eligible control`
+            : `'${d.prop}' already written on '${node.component}'; the donated value did not land`,
+        },
+        treePath,
+        Band.BeforeChildren,
+        Phase.PropMap,
+      );
+    }
 
     if (!model.consumesSubtree) {
       this.emitChildren(node, model, instance, id, path, treePath);
@@ -919,10 +971,15 @@ class SurfaceEmitter {
     treePath: readonly number[],
   ): void {
     const childRoute = model.routes.find((r) => r.from.some((s) => s.kind === "children"));
-    const childNodes =
-      Object.keys(model.subIdentity).length > 0 || Object.keys(model.drops).length > 0
+    const raw = collectChildren(node);
+    const anyTransparentChild = raw.some((c) => {
+      const plan = this.byDspackId.get(c.node.component);
+      return plan !== undefined && surfaceModelOf(plan).transparent;
+    });
+    const childNodes: RewrittenChild[] =
+      Object.keys(model.subIdentity).length > 0 || Object.keys(model.drops).length > 0 || anyTransparentChild
         ? this.rewriteChildren(node, model, path, treePath)
-        : collectChildren(node).map((c) => ({ node: c.node, suffix: c.suffix }));
+        : raw.map((c) => ({ node: c.node, suffix: c.suffix }));
     if (childNodes.length === 0) return;
 
     const childIds = childNodes.map((child, i) =>
@@ -936,7 +993,7 @@ class SurfaceEmitter {
             0,
             child.textVariant,
           )
-        : this.emitNode(child.node, `${path}${child.suffix}[${i}]`, [...treePath, Band.Children, i]),
+        : this.emitNode(child.node, `${path}${child.suffix}[${i}]`, [...treePath, Band.Children, i], child.donations ?? []),
     );
 
     if (!childRoute) {
@@ -954,56 +1011,142 @@ class SurfaceEmitter {
   }
 
   /**
-   * Identity applied to named sub-components met in this node's child list:
-   * `transparent` dissolves (its children rise in document order, recursively),
-   * `as-text` becomes the profile's text primitive carrying its subtree text.
+   * T1, the general root-transparency rule (ratified): a transparent node is
+   * a semantic statement that the dspack node has no emitted identity — valid
+   * at the root too. The root dissolves through the ORDINARY machinery
+   * (presented as a child of a synthetic host, so boundary donations, sub
+   * dispositions, and every refusal apply), then:
+   *
+   *   - exactly one surviving descendant  -> it IS the root (id "root",
+   *     components[0]) — the existing root invariant, preserved
+   *     deterministically;
+   *   - several survivors                 -> they wrap in the synthesized
+   *     wrap component, which is structural TRANSPORT, not a replacement
+   *     identity for the transparent component;
+   *   - nothing survives                  -> refuse. Fabricating content for
+   *     an empty root would be synthesis of meaning, not structure.
+   *
+   * No component is special-cased by name.
+   */
+  emitTransparentRoot(root: SurfaceNode, path: string): string {
+    const { wrapComponent, wrapChildrenProp } = this.profile.surfaceSynthesis;
+
+    // Present the root AS A CHILD of a synthetic host, so the ordinary
+    // rewriting machinery performs the whole dissolution — the plan-transparent
+    // ledger entry, the boundary's own donations (transparentDonate), sub
+    // dispositions, and every refusal — with no root-only special case.
+    const host = { component: "__root_host__", children: [root] } as unknown as SurfaceNode;
+    const spliced = this.rewriteChildren(host, emptySurfaceModel(), path, []);
+
+    if (spliced.length === 0) {
+      throw new EmitSurfaceError(
+        `transparent root '${root.component}' dissolved to nothing — no descendant survives to become the root, and fabricating one is refused`,
+        path,
+      );
+    }
+
+    if (spliced.length === 1) {
+      const only = spliced[0];
+      this.diagnostics.pushFidelity(
+        {
+          source: `${path} (${root.component})`,
+          destination: "root",
+          origin: `plan.${root.component}`,
+          kind: "moved",
+          class: "maps-cleanly",
+          note: "transparent root: its single surviving descendant is preserved as the root instance",
+        },
+        [],
+        Band.BeforeChildren,
+        Phase.ChildRewrite,
+      );
+      return "textVariant" in only
+        ? this.emitTextPrimitive(only.text, "root", path, [Band.Children, 0], Phase.TextChild, 0, only.textVariant)
+        : this.emitNode(only.node, path, [Band.Children, 0], only.donations ?? []);
+    }
+
+    const id = this.allocateId("root", path, { treePath: [], band: Band.BeforeChildren, phase: Phase.IdAllocation, rule: 0 });
+    const index = this.components.length;
+    this.components.push({});
+    const childIds = spliced.map((child, i) =>
+      "textVariant" in child
+        ? this.emitTextPrimitive(child.text, `root_${slug(child.textVariant)}`, path, [Band.Children, i], Phase.TextChild, 0, child.textVariant)
+        : this.emitNode(child.node, `${path}.children[${i}]`, [Band.Children, i], child.donations ?? []),
+    );
+
+    this.components[index] = { id, component: wrapComponent, [wrapChildrenProp]: childIds };
+    this.diagnostics.push(
+      {
+        code: "surface-synthesized-wrap",
+        message: `${path}: transparent root '${root.component}' dissolved; ${childIds.length} risen child(ren) wrapped in a synthesized ${wrapComponent} ('root').`,
+      },
+      [],
+      Band.AfterChildren,
+      Phase.Wrap,
+    );
+    this.diagnostics.pushFidelity(
+      { source: `${path} (${childIds.length} risen children)`, destination: `synthesized ${wrapComponent} 'root'`, origin: "surfaceSynthesis.wrapComponent", kind: "wrapped", class: "synthesis-defaults", note: "structural transport for several risen children — not a replacement identity for the transparent root" },
+      [],
+      Band.AfterChildren,
+      Phase.Wrap,
+    );
+    return id;
+  }
+
+  /**
+   * Identity applied to the child list: sub dispositions from the surrounding
+   * model, T1 plan-level transparency for child COMPONENTS (dissolved under
+   * their own model — the `ctx` switch), and donation boundaries. A
+   * dissolving boundary that carries donations harvests them from its own
+   * subtree, consumes the donor subs, and attaches the pending writes to its
+   * single eligible control — refusing on zero or several candidates. The
+   * pending writes ride the returned child list explicitly and apply inside
+   * the control's own construction: no committed instance is ever mutated.
    */
   private rewriteChildren(
     node: SurfaceNode,
     model: SurfaceModel,
     path: string,
     treePath: readonly number[],
-  ): Array<{ node: SurfaceNode; suffix: string } | { text: string; textVariant: string }> {
-    const out: Array<{ node: SurfaceNode; suffix: string } | { text: string; textVariant: string }> = [];
-    const visit = (n: SurfaceNode, suffix: string): void => {
-      // An authored drop is warn-and-discard, exactly like the collect path:
-      // the sub is skipped with its reason on record, never emitted and never
-      // crashed into the unknown-component refusal.
-      const dropReason = model.drops[n.component];
+  ): RewrittenChild[] {
+    const push = (w: Warning) => this.diagnostics.push(w, treePath, Band.BeforeChildren, Phase.ChildRewrite);
+    const ledger = (f: SurfaceFidelityEntry) =>
+      this.diagnostics.pushFidelity(f, treePath, Band.BeforeChildren, Phase.ChildRewrite);
+
+    const visit = (n: SurfaceNode, suffix: string, ctx: SurfaceModel, out: RewrittenChild[]): void => {
+      // An authored drop is warn-and-discard, exactly like the collect path.
+      const dropReason = ctx.drops[n.component];
       if (dropReason !== undefined) {
-        this.diagnostics.push(
-          { code: "surface-sub-dropped", message: `${path}: '${n.component}' dropped: ${dropReason}.` },
-          treePath,
-          Band.BeforeChildren,
-          Phase.ChildRewrite,
-        );
-        this.diagnostics.pushFidelity(
-          { source: `${path} (${n.component})`, destination: "(discarded)", origin: `drops.${n.component}`, kind: "dropped", class: "lossy", note: dropReason },
-          treePath,
-          Band.BeforeChildren,
-          Phase.ChildRewrite,
-        );
+        push({ code: "surface-sub-dropped", message: `${path}: '${n.component}' dropped: ${dropReason}.` });
+        ledger({ source: `${path} (${n.component})`, destination: "(discarded)", origin: `drops.${n.component}`, kind: "dropped", class: "lossy", note: dropReason });
         return;
       }
-      const identity = model.subIdentity[n.component];
+
+      // T1: a child COMPONENT whose plan is transparent dissolves here — its
+      // subtree governed by ITS OWN model, not the surrounding one.
+      const childPlan = this.byDspackId.get(n.component);
+      const childModel = childPlan ? surfaceModelOf(childPlan) : undefined;
+      if (childModel?.transparent) {
+        ledger({
+          source: `${path} (${n.component})`,
+          destination: "(children rise in place)",
+          origin: `plan.${n.component}`,
+          kind: "flattened",
+          class: "lossy",
+          note: "transparent identity: the component dissolves; its own structure is not carried",
+        });
+        dissolve(n, suffix, childModel, childModel.transparentDonate, `plan.${n.component}`, out);
+        return;
+      }
+
+      const identity = ctx.subIdentity[n.component];
       if (identity?.kind === "transparent") {
-        this.diagnostics.push(
-          {
-            code: "surface-sub-flattened",
-            message: `${path}: grouping sub-component '${n.component}' spliced inline (subFlatten strategy); its own structure is not carried.`,
-          },
-          treePath,
-          Band.BeforeChildren,
-          Phase.ChildRewrite,
-        );
-        this.diagnostics.pushFidelity(
-          { source: `${path} (${n.component})`, destination: "(children rise in place)", origin: `subs.${n.component}`, kind: "flattened", class: "lossy", note: "transparent grouping dissolved; its own structure is not carried" },
-          treePath,
-          Band.BeforeChildren,
-          Phase.ChildRewrite,
-        );
-        if (n.text !== undefined && n.text !== "") out.push({ text: n.text, textVariant: "body" });
-        for (const child of collectChildren(n)) visit(child.node, child.suffix);
+        push({
+          code: "surface-sub-flattened",
+          message: `${path}: grouping sub-component '${n.component}' spliced inline (subFlatten strategy); its own structure is not carried.`,
+        });
+        ledger({ source: `${path} (${n.component})`, destination: "(children rise in place)", origin: `subs.${n.component}`, kind: "flattened", class: "lossy", note: "transparent grouping dissolved; its own structure is not carried" });
+        dissolve(n, suffix, ctx, identity.donate ?? [], `subs.${n.component}`, out);
         return;
       }
       if (identity?.kind === "as-text") {
@@ -1013,35 +1156,107 @@ class SurfaceEmitter {
           // Structure destroyed, text preserved — the same loss the cell
           // flatten records, and it must class the same way.
           const names = nested.map((c) => `'${c.node.component}'`).join(", ");
-          this.diagnostics.pushFidelity(
-            { source: `${path} (${n.component} containing ${names})`, destination: "(subtree text)", origin: `subs.${n.component}`, kind: "flattened", class: "lossy", note: "re-identified as text; nested component structure and props are not carried" },
-            treePath,
-            Band.BeforeChildren,
-            Phase.ChildRewrite,
-          );
+          ledger({ source: `${path} (${n.component} containing ${names})`, destination: "(subtree text)", origin: `subs.${n.component}`, kind: "flattened", class: "lossy", note: "re-identified as text; nested component structure and props are not carried" });
         }
         if (text !== "") {
           out.push({ text, textVariant: identity.variant });
         } else {
-          this.diagnostics.push(
-            { code: "surface-sub-dropped", message: `${path}: '${n.component}' carried no text to synthesize; dropped.` },
-            treePath,
-            Band.BeforeChildren,
-            Phase.ChildRewrite,
-          );
-          this.diagnostics.pushFidelity(
-            { source: `${path} (${n.component})`, destination: "(discarded)", origin: `subs.${n.component}`, kind: "dropped", class: "lossy", note: "re-identified as text but carried none" },
-            treePath,
-            Band.BeforeChildren,
-            Phase.ChildRewrite,
-          );
+          push({ code: "surface-sub-dropped", message: `${path}: '${n.component}' carried no text to synthesize; dropped.` });
+          ledger({ source: `${path} (${n.component})`, destination: "(discarded)", origin: `subs.${n.component}`, kind: "dropped", class: "lossy", note: "re-identified as text but carried none" });
         }
         return;
       }
       out.push({ node: n, suffix });
     };
-    for (const child of collectChildren(node)) visit(child.node, child.suffix);
-    return out;
+
+    /**
+     * Dissolves one boundary node under `innerCtx`. When the boundary carries
+     * donations: harvest first-wins per donation, consume every donor sub,
+     * splice the rest, then bind the pending writes to the single eligible
+     * control among the spliced replacements — zero or several refuse.
+     * Eligibility is declared, never guessed: a control's plan must declare
+     * every donated destination.
+     */
+    const dissolve = (
+      n: SurfaceNode,
+      suffix: string,
+      innerCtx: SurfaceModel,
+      donations: readonly Donation[],
+      originLabel: string,
+      out: RewrittenChild[],
+    ): void => {
+      const consumedDonorSubs = new Set<string>();
+      const pending: PendingDonation[] = [];
+      for (const d of donations) {
+        let value: string | undefined;
+        let donorComponent = n.component;
+        if (d.from.kind === "self-text") {
+          value = n.text;
+        } else if (d.from.kind === "sub-text") {
+          for (const sub of d.from.subs) consumedDonorSubs.add(sub);
+          const walk = (m: SurfaceNode): void => {
+            if (value === undefined && d.from.kind === "sub-text" && d.from.subs.includes(m.component) && m.text !== undefined) {
+              value = m.text;
+              donorComponent = m.component;
+            }
+            for (const c of collectChildren(m)) walk(c.node);
+          };
+          walk(n);
+        }
+        if (value !== undefined) {
+          pending.push({ prop: d.to.name, value, origin: d.origin, donorPath: `${path}${suffix}`, donorComponent });
+        }
+        // Nothing to donate is not an error: the destination stays absent and
+        // gate A3 arbitrates — relocation, never synthesis (the lift rule).
+      }
+
+      // The boundary's own text rises as body text unless a self.text
+      // donation claimed it (the plain transparent-sub behaviour otherwise).
+      const selfDonated = donations.some((d) => d.from.kind === "self-text");
+      const spliced: RewrittenChild[] = [];
+      if (!selfDonated && n.text !== undefined && n.text !== "") spliced.push({ text: n.text, textVariant: "body" });
+
+      for (const child of collectChildren(n)) {
+        if (consumedDonorSubs.has(child.node.component)) {
+          const supplied = pending.some((q) => q.donorComponent === child.node.component && q.value === child.node.text);
+          if (!supplied) {
+            push({ code: "surface-sub-dropped", message: `${path}: '${child.node.component}' dropped: its text was not the donated value (first donor wins).` });
+            ledger({ source: `${path}${child.suffix} (${child.node.component})`, destination: "(discarded)", origin: originLabel, kind: "dropped", class: "lossy", note: "surplus donor: the donation was already supplied (first donor wins)" });
+          }
+          continue;
+        }
+        visit(child.node, child.suffix, innerCtx, spliced);
+      }
+
+      if (pending.length > 0) {
+        const controls = spliced.filter((entry): entry is { node: SurfaceNode; suffix: string; donations?: PendingDonation[] } => {
+          if (!("node" in entry)) return false;
+          const plan = this.byDspackId.get(entry.node.component);
+          if (!plan || surfaceModelOf(plan).transparent) return false;
+          const declared = new Set([
+            ...Object.keys(plan.structural ?? {}),
+            ...Object.values(plan.propMap ?? {}).map((pp) => pp.a2ui),
+          ]);
+          return pending.every((q) => declared.has(q.prop));
+        });
+        if (controls.length !== 1) {
+          const names = controls.map((c) => `'${c.node.component}'`).join(", ");
+          throw new EmitSurfaceError(
+            `donation boundary '${n.component}' (${originLabel}) requires exactly one eligible control declaring ` +
+              `[${pending.map((q) => q.prop).join(", ")}]; found ${controls.length}${controls.length ? ` (${names})` : ""} — ` +
+              `a donation relocates onto one control, never broadcasts`,
+            `${path}${suffix}`,
+          );
+        }
+        controls[0].donations = [...(controls[0].donations ?? []), ...pending];
+      }
+
+      out.push(...spliced);
+    };
+
+    const rootOut: RewrittenChild[] = [];
+    for (const child of collectChildren(node)) visit(child.node, child.suffix, model, rootOut);
+    return rootOut;
   }
 
   private emitTextPrimitive(

@@ -22,7 +22,7 @@
 import type { DspackDoc } from "../types.js";
 import type { Profile } from "./profiles.js";
 import { surfaceModelOf } from "./desugar.js";
-import { referencedSubs, unclassifiedSubs, type SurfaceModel } from "./model.js";
+import { describeDestination, referencedSubs, unclassifiedSubs, type Donation, type SurfaceModel } from "./model.js";
 
 export interface ProfileContractIssue {
   path: string;
@@ -132,6 +132,37 @@ export function validateProfileAgainstContract(profile: Profile, doc: DspackDoc)
       });
     }
   }
+  }
+
+  // T1 donations: every donated destination must be declared by at least one
+  // mapped, NON-transparent plan — otherwise no surface could ever satisfy
+  // the exactly-one-eligible-control rule and every use would refuse at emit.
+  // Checked profile-wide (the eligible control is chosen per surface).
+  const receiverProps = new Set<string>();
+  for (const plan of [...profile.components, ...profile.synthesized]) {
+    const m = surfaceModelOf(plan);
+    if (m.transparent) continue;
+    for (const k of Object.keys(plan.structural ?? {})) receiverProps.add(k);
+    for (const p of Object.values(plan.propMap ?? {})) receiverProps.add(p.a2ui);
+  }
+  for (const [collection, plans] of collections) {
+    for (const [i, plan] of plans.entries()) {
+      const m = surfaceModelOf(plan);
+      const donations: Array<{ d: Donation; at: string }> = [
+        ...m.transparentDonate.map((d) => ({ d, at: `/${collection}/${i}/surface/transparent/donate` })),
+        ...Object.values(m.subIdentity).flatMap((id) =>
+          id.kind === "transparent" && id.donate ? id.donate.map((d) => ({ d, at: `/${collection}/${i}/surface/subs` })) : [],
+        ),
+      ];
+      for (const { d, at } of donations) {
+        if (!receiverProps.has(d.to.name)) {
+          issues.push({
+            path: at,
+            message: `donation writes ${describeDestination(d.to)}, but no mapped non-transparent plan declares '${d.to.name}' — no surface could ever satisfy it`,
+          });
+        }
+      }
+    }
   }
 
   if (issues.length > 0) throw new ProfileContractError(issues);

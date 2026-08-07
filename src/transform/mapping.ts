@@ -40,6 +40,18 @@ export function mapDspack(doc: DspackDoc, profile: Profile): MappingResult {
   const warnings: Warning[] = [];
 
   const addComponent = (plan: ComponentPlan) => {
+    // T1: a transparent plan emits no catalog entry — nothing can instantiate
+    // a component that dissolves at emission. Its disposition is recorded in
+    // coverage; its absence from anyComponent is what keeps A3 honest.
+    if (surfaceModelOf(plan).transparent) {
+      fidelity.push({
+        source: `plan.${plan.dspackId ?? plan.a2ui}`,
+        target: "(no catalog entry)",
+        class: "synthesis-defaults",
+        note: "transparent identity: dissolves at emission; children rise to the parent's destination.",
+      });
+      return;
+    }
     const dspackComp = plan.dspackId ? doc.components?.[plan.dspackId] : undefined;
     if (plan.dspackId && !dspackComp) {
       warnings.push({
@@ -109,9 +121,13 @@ function computeCoverage(
   fidelity: FidelityEntry[],
 ): CoverageEntry[] {
   const mapped = new Map<string, string>(); // dspackId -> A2UI name
+  const byId = new Map<string, ComponentPlan>();
   // Both `components` and any `synthesized` plan that declares a `dspackId` count as mapped.
   for (const p of [...profile.components, ...profile.synthesized]) {
-    if (p.dspackId) mapped.set(p.dspackId, p.a2ui);
+    if (p.dspackId) {
+      mapped.set(p.dspackId, p.a2ui);
+      byId.set(p.dspackId, p);
+    }
   }
 
   const casualties = new Map<string, (typeof profile.casualtyComponents)[number]>();
@@ -122,7 +138,11 @@ function computeCoverage(
   const coverage: CoverageEntry[] = [];
   for (const id of Object.keys(doc.components ?? {})) {
     if (mapped.has(id)) {
-      coverage.push({ id, disposition: "mapped", detail: `-> ${mapped.get(id)}` });
+      coverage.push({
+        id,
+        disposition: "mapped",
+        detail: byId.get(id) && surfaceModelOf(byId.get(id)!).transparent ? "-> (transparent: dissolves at emission)" : `-> ${mapped.get(id)}`,
+      });
     } else if (omitted.has(id)) {
       coverage.push({ id, disposition: "omitted", detail: "declared in profile.intentionallyOmitted" });
     } else if (casualties.has(id)) {
@@ -156,10 +176,6 @@ function computeCoverage(
   // validateProfileAgainstContract refuses them at entry. Measured before
   // enforcement: pinned shadcn v2.3.0, astryx and acme all derive zero
   // unresolved subs, so no shipped artifact changes.
-  const byId = new Map<string, ComponentPlan>();
-  for (const p of [...profile.components, ...profile.synthesized]) {
-    if (p.dspackId) byId.set(p.dspackId, p);
-  }
   for (const [id, component] of Object.entries(doc.components ?? {})) {
     const subs =
       (component as { composition?: { subComponents?: Array<{ id: string }> } }).composition?.subComponents ?? [];
