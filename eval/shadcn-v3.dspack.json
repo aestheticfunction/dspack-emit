@@ -3,7 +3,7 @@
   "dspack": "0.4",
   "name": "shadcn/ui",
   "description": "A collection of reusable components built with Radix UI and Tailwind CSS. Components are copied into your project, not installed as a dependency.",
-  "version": "3.0.0",
+  "version": "3.2.0",
   "metadata": {
     "source": "https://ui.shadcn.com",
     "license": "MIT"
@@ -2043,34 +2043,6 @@
       "composition": {
         "subComponents": [
           {
-            "id": "field-set",
-            "name": "FieldSet",
-            "description": "A semantic fieldset that groups controls answering one question — a checkbox group, a radio group, an address block. Pair it with a FieldLegend so the group has an accessible name, and put the individual Fields in a FieldGroup inside it.",
-            "acceptsChildren": "components",
-            "categories": [
-              "form"
-            ]
-          },
-          {
-            "id": "field-legend",
-            "name": "FieldLegend",
-            "description": "The legend element that names a FieldSet and is announced with each control inside it. Takes a variant prop of \"legend\" (default, section-sized) or \"label\" (label-sized, for nested fieldsets or when the group reads as a single field, such as a checkbox group).",
-            "slot": "legend",
-            "acceptsChildren": "text",
-            "categories": [
-              "form"
-            ]
-          },
-          {
-            "id": "field-group",
-            "name": "FieldGroup",
-            "description": "A layout wrapper that stacks Fields with consistent spacing and establishes the @container/field-group container query that orientation=\"responsive\" resolves against. It carries no semantics, so it never substitutes for FieldSet. Add data-slot=\"checkbox-group\" when it holds a checkbox group so the spacing tightens.",
-            "acceptsChildren": "components",
-            "categories": [
-              "form"
-            ]
-          },
-          {
             "id": "field-content",
             "name": "FieldContent",
             "description": "A flex column that keeps the label, title, description, and error together when the control sits beside them — the layout you need for horizontal and responsive fields. Omit it in a plain vertical field with no description.",
@@ -2119,18 +2091,9 @@
             "categories": [
               "form"
             ]
-          },
-          {
-            "id": "field-separator",
-            "name": "FieldSeparator",
-            "description": "A divider between sections of a FieldGroup, optionally with inline text such as \"Or continue with\". Use it sparingly — every separator is a section boundary a screen reader user has to interpret.",
-            "acceptsChildren": "text",
-            "categories": [
-              "form"
-            ]
           }
         ],
-        "notes": "The nesting the docs prescribe is FieldSet > FieldLegend + FieldDescription + FieldGroup > Field, and inside a Field: FieldLabel, the control, FieldDescription, FieldError — in that reading order, with FieldError immediately after the control it describes. When the label sits beside the control, wrap the label, description, and error in FieldContent so they stay aligned. Any labelable control belongs inside a Field: Input, Textarea, Select, Checkbox, RadioGroupItem, Switch, Slider, InputGroup, or your own. No sub-component is marked required, deliberately: in the documented choice-card and radio patterns FieldLabel is an ancestor of Field rather than a descendant, so a structural must-contain rule would be false — the labeling requirement is carried as a constraint instead. FieldGroup is required in practice only for orientation=\"responsive\", which resolves against the container query FieldGroup establishes."
+        "notes": "The nesting the docs prescribe is FieldSet > FieldLegend + FieldGroup > Field, and inside a Field: FieldLabel, the control, FieldDescription, FieldError — in that reading order, with FieldError immediately after the control it describes. FieldSet and FieldGroup are top-level components in this contract (they wrap Fields, they do not live inside one); upstream also allows a set-level FieldDescription, which this contract deliberately narrows to Field scope — every shipped example uses it there, and a set-level summary belongs to the legend. When the label sits beside the control, wrap the label, description, and error in FieldContent so they stay aligned. Any labelable control belongs inside a Field: Input, Textarea, Select, Checkbox, RadioGroupItem, Switch, Slider, InputGroup, or your own. No sub-component is marked required, deliberately: in the documented choice-card and radio patterns FieldLabel is an ancestor of Field rather than a descendant, so a structural must-contain rule would be false — the labeling requirement is carried as a constraint instead. FieldGroup is required in practice only for orientation=\"responsive\", which resolves against the container query FieldGroup establishes."
       },
       "constraints": [
         {
@@ -2210,6 +2173,59 @@
       "categories": [
         "form"
       ]
+    },
+    "field-set": {
+      "name": "FieldSet",
+      "description": "A semantic fieldset that groups controls answering one question — a checkbox group, a radio group, an address block. Pair it with a FieldLegend so the group has an accessible name, and put the individual Fields in a FieldGroup inside it.",
+      "status": "stable",
+      "props": {},
+      "categories": [
+        "form"
+      ],
+      "tags": [
+        "form",
+        "grouping"
+      ],
+      "composition": {
+        "subComponents": [
+          {
+            "id": "field-legend",
+            "name": "FieldLegend",
+            "description": "The legend element that names a FieldSet and is announced with each control inside it. Takes a variant prop of \"legend\" (default, section-sized) or \"label\" (label-sized, for nested fieldsets or when the group reads as a single field, such as a checkbox group).",
+            "slot": "legend",
+            "acceptsChildren": "text",
+            "categories": [
+              "form"
+            ]
+          }
+        ]
+      }
+    },
+    "field-group": {
+      "name": "FieldGroup",
+      "description": "A layout wrapper that stacks Fields with consistent spacing and establishes the @container/field-group container query that orientation=\"responsive\" resolves against. It carries no semantics, so it never substitutes for FieldSet. Add data-slot=\"checkbox-group\" when it holds a checkbox group so the spacing tightens.",
+      "status": "stable",
+      "props": {},
+      "categories": [
+        "form"
+      ],
+      "tags": [
+        "form",
+        "grouping"
+      ],
+      "composition": {
+        "subComponents": [
+          {
+            "id": "field-separator",
+            "name": "FieldSeparator",
+            "description": "A divider between sections of a FieldGroup, optionally with inline text such as \"Or continue with\". Use it sparingly — every separator is a section boundary a screen reader user has to interpret.",
+            "acceptsChildren": "text",
+            "categories": [
+              "form"
+            ]
+          }
+        ]
+      }
     },
     "form": {
       "name": "Form",
@@ -7043,6 +7059,26 @@
         "interaction",
         "form"
       ]
+    },
+    {
+      "id": "rule.form-control-carries-control",
+      "type": "required-composition",
+      "severity": "must",
+      "component": "form-control",
+      "requiredCategories": [
+        {
+          "id": "interactive",
+          "min": 1
+        }
+      ],
+      "rationale": "A form-control represents the location of the user-editable control in a field. It must contain an approved interactive control; text-only or empty form controls are not meaningful form composition.",
+      "examples": [
+        "ex.expense-report-form"
+      ],
+      "x-source": {
+        "evidence": "dspack-emit eval/t1-build-matrix*.json — T1 Build runs generated lint-clean form-controls carrying literal text and no control; every gate passed and the emitter correctly refused",
+        "amendment": "spec v0.4 §4.3 (2026-08-07), the first §6 ceiling item lifted by measurement"
+      }
     }
   ],
   "examples": [

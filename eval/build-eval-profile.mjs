@@ -40,8 +40,8 @@ const { scaffoldProfile } = await import(join(root, "dist/transform/scaffold.js"
 const { shadcnProfile } = await import(join(root, "dist/transform/profiles.js"));
 const { SHADCN_V2_SURFACES, SHADCN_V3_T1_SURFACES, SHADCN_V3_T2_PLANS, SHADCN_V3_T3_PLANS } = await import(join(root, "dist/transform/shadcn-v2-respelling.js"));
 
-export const CONTRACT_SHA256 = "ea87346f85965937cb2b18e3998f19da7ba3cee41b41572638d657f20b3f5565";
-export const CONTRACT_COMMIT = "48643ff (aestheticfunction/dspack, merged as b573637 / PR #35)";
+export const CONTRACT_SHA256 = "55a02863af330bde1af15e896aac93d6d78109a3bdbbc27ad253ea210a858c93";
+export const CONTRACT_COMMIT = "bd2851b (aestheticfunction/dspack, merged as d50f049 / PR #42 — contract 3.2.0, the dspack#40 field correction)";
 
 export function buildEvalProfile() {
   const contractBytes = readFileSync(join(root, "eval/shadcn-v3.dspack.json"));

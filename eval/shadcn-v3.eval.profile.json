@@ -815,6 +815,64 @@
       }
     },
     {
+      "a2ui": "FieldSet",
+      "dspackId": "field-set",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "children": {
+          "schema": {
+            "$ref": "#/$defs/ChildList"
+          },
+          "description": "Child component IDs, in order.",
+          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.notification-preferences'."
+        }
+      },
+      "required": [
+        "children"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "children"
+            ],
+            "to": "slots:children"
+          }
+        ]
+      }
+    },
+    {
+      "a2ui": "FieldGroup",
+      "dspackId": "field-group",
+      "commons": [
+        "ComponentCommon"
+      ],
+      "structural": {
+        "children": {
+          "schema": {
+            "$ref": "#/$defs/ChildList"
+          },
+          "description": "Child component IDs, in order.",
+          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.notification-preferences'."
+        }
+      },
+      "required": [
+        "children"
+      ],
+      "surface": {
+        "routes": [
+          {
+            "from": [
+              "children"
+            ],
+            "to": "slots:children"
+          }
+        ]
+      }
+    },
+    {
       "a2ui": "Form",
       "dspackId": "form",
       "commons": [
@@ -1873,14 +1931,16 @@
         "sheet-close"
       ],
       "field": [
-        "field-set",
-        "field-legend",
-        "field-group",
         "field-content",
         "field-label",
         "field-title",
         "field-description",
-        "field-error",
+        "field-error"
+      ],
+      "field-set": [
+        "field-legend"
+      ],
+      "field-group": [
         "field-separator"
       ],
       "form": [
@@ -1952,8 +2012,8 @@
     "purpose": "Reproducible derived-coverage measurement of the production shadcn v3 contract against the current foundation.",
     "notStudioProfile": "Downstream Studio consumes the pinned v2.3.0 contract with the shipped v1 profile; this fixture is measurement-only.",
     "contract": {
-      "commit": "48643ff (aestheticfunction/dspack, merged as b573637 / PR #35)",
-      "sha256": "ea87346f85965937cb2b18e3998f19da7ba3cee41b41572638d657f20b3f5565"
+      "commit": "bd2851b (aestheticfunction/dspack, merged as d50f049 / PR #42 — contract 3.2.0, the dspack#40 field correction)",
+      "sha256": "55a02863af330bde1af15e896aac93d6d78109a3bdbbc27ad253ea210a858c93"
     },
     "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts); zero casualties declared, zero fresh judgment.",
     "unresolvedAreDeliberate": "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better."
