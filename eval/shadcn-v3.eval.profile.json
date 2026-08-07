@@ -773,45 +773,29 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {
-        "children": {
-          "schema": {
-            "$ref": "#/$defs/ChildList"
-          },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.delete-project-confirmation'."
-        }
-      },
-      "required": [
-        "children"
-      ],
-      "propMap": {
-        "orientation": {
-          "a2ui": "orientation",
-          "kind": "enum",
-          "targetEnum": [
-            "vertical",
-            "horizontal",
-            "responsive"
-          ],
-          "default": "vertical",
-          "description": "How the label and control are arranged. Also exposed on the element as data-orientation, which FieldDescription reads to balance long helper text in horizontal layouts."
-        },
-        "data-invalid": {
-          "a2ui": "data-invalid",
-          "kind": "boolean",
-          "description": "Switches the whole field block into the error treatment, including the label and description. It is styling only and is never exposed to assistive technology, so it does not replace aria-invalid on the control itself — set both. With react-hook-form this is data-invalid={fieldState.invalid}."
-        }
-      },
+      "structural": {},
+      "required": [],
       "surface": {
-        "routes": [
-          {
-            "from": [
-              "children"
-            ],
-            "to": "slots:children"
+        "transparent": {
+          "donate": [
+            {
+              "from": "sub(field-label).text",
+              "to": "prop:label"
+            }
+          ]
+        },
+        "subs": {
+          "field-content": "transparent",
+          "field-title": {
+            "asText": "h4"
+          },
+          "field-description": {
+            "asText": "caption"
+          },
+          "field-error": {
+            "drop": "validation state is runtime data the declarative surface does not carry (mirrors form-message)"
           }
-        ]
+        }
       }
     },
     {
@@ -820,27 +804,15 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {
-        "children": {
-          "schema": {
-            "$ref": "#/$defs/ChildList"
-          },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.notification-preferences'."
-        }
-      },
-      "required": [
-        "children"
-      ],
+      "structural": {},
+      "required": [],
       "surface": {
-        "routes": [
-          {
-            "from": [
-              "children"
-            ],
-            "to": "slots:children"
+        "transparent": true,
+        "subs": {
+          "field-legend": {
+            "asText": "h4"
           }
-        ]
+        }
       }
     },
     {
@@ -849,27 +821,15 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {
-        "children": {
-          "schema": {
-            "$ref": "#/$defs/ChildList"
-          },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.notification-preferences'."
-        }
-      },
-      "required": [
-        "children"
-      ],
+      "structural": {},
+      "required": [],
       "surface": {
-        "routes": [
-          {
-            "from": [
-              "children"
-            ],
-            "to": "slots:children"
+        "transparent": true,
+        "subs": {
+          "field-separator": {
+            "drop": "a visual section boundary; its optional inline text is presentation of the divider, and no worked example carries one"
           }
-        ]
+        }
       }
     },
     {
@@ -937,17 +897,14 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "fallback": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "string"
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.order-detail-summary'."
+          "description": "Initials shown while no image is available.",
+          "synthNote": "Lifted from the avatar-fallback sub's text."
         }
       },
-      "required": [
-        "children"
-      ],
       "propMap": {
         "size": {
           "a2ui": "size",
@@ -957,19 +914,35 @@
             "default",
             "lg"
           ],
-          "default": "default",
-          "description": "Preset avatar diameter. AvatarBadge and AvatarGroupCount scale from this value, so change the size here rather than overriding the box with utility classes."
+          "default": "default"
         }
       },
+      "required": [
+        "fallback"
+      ],
       "surface": {
         "routes": [
           {
             "from": [
-              "children"
+              "sub(avatar-fallback).text"
             ],
-            "to": "slots:children"
+            "to": "prop:fallback"
           }
-        ]
+        ],
+        "subs": {
+          "avatar-image": {
+            "drop": "the contract declares no src/alt on avatar-image — an empty node carries nothing to project (contract-gap class, cf. dspack#39)"
+          },
+          "avatar-badge": {
+            "drop": "no worked example exercises it; no measured shape to project — revisit with usage evidence"
+          },
+          "avatar-group": {
+            "drop": "no worked example exercises it; a grouped-avatars shape is repetition to be measured, not guessed"
+          },
+          "avatar-group-count": {
+            "drop": "no worked example exercises it; belongs to the unmeasured avatar-group shape"
+          }
+        }
       }
     },
     {
@@ -1049,56 +1022,18 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {
-        "children": {
-          "schema": {
-            "$ref": "#/$defs/ChildList"
-          },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.project-workspace-panels'."
-        }
-      },
-      "required": [
-        "children"
-      ],
-      "propMap": {
-        "type": {
-          "a2ui": "type",
-          "kind": "enum",
-          "targetEnum": [
-            "hover",
-            "scroll",
-            "auto",
-            "always"
-          ],
-          "default": "hover",
-          "description": "When the custom scrollbars are shown. Anything other than auto or always hides the strongest signal that there is more content, so pair hover or scroll with another cue."
-        },
-        "scrollHideDelay": {
-          "a2ui": "scrollHideDelay",
-          "kind": "number",
-          "description": "Milliseconds to wait after scrolling stops or the pointer leaves before hiding the scrollbars. Applies only when type is \"hover\" or \"scroll\"."
-        },
-        "dir": {
-          "a2ui": "dir",
-          "kind": "enum",
-          "targetEnum": [
-            "ltr",
-            "rtl"
-          ],
-          "default": "ltr",
-          "description": "Reading direction, which decides which side the vertical scrollbar sits on and where horizontal scrolling begins. Inherit it from a DirectionProvider where you can."
-        }
-      },
+      "structural": {},
+      "required": [],
       "surface": {
-        "routes": [
-          {
-            "from": [
-              "children"
-            ],
-            "to": "slots:children"
+        "transparent": true,
+        "subs": {
+          "scroll-area-scrollbar": {
+            "drop": "scrollbar chrome: presentation of the scroll container, not content"
+          },
+          "scroll-area-thumb": {
+            "drop": "the scrollbar's drag indicator: chrome, not content"
           }
-        ]
+        }
       }
     },
     {
@@ -1306,7 +1241,15 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {},
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming the long-text entry.",
+          "synthNote": "Sourced by the T1 field-label/form-label donation, exactly as on input."
+        }
+      },
       "required": [],
       "propMap": {
         "value": {
@@ -1362,7 +1305,15 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {},
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming what checking the box asserts.",
+          "synthNote": "Sourced by the T1 form-label donation (ex.expense-report-form's billable field)."
+        }
+      },
       "required": [],
       "propMap": {
         "disabled": {
@@ -1394,7 +1345,15 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {},
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming what the switch turns on or off.",
+          "synthNote": "Sourced by the T1 field-label/form-label donation; 4/4 worked-example switches sit inside a field."
+        }
+      },
       "required": [],
       "propMap": {
         "checked": {
@@ -1541,6 +1500,13 @@
           },
           "description": "The selectable options.",
           "synthNote": "A2UI models repeated options as data on the control (T2 item-mode collection)."
+        },
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming the choice being made.",
+          "synthNote": "Sourced by the T1 field-label/form-label donation when the select is a field's control (ex.invite-teammates-dialog)."
         }
       },
       "propMap": {
@@ -1587,17 +1553,21 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "title": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "string"
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.delete-project-confirmation'."
+          "description": "The one-line heading naming what happened.",
+          "synthNote": "Lifted from the alert-title sub (5/5 worked examples carry it there)."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting detail under the title.",
+          "synthNote": "Lifted from the alert-description sub."
         }
       },
-      "required": [
-        "children"
-      ],
       "propMap": {
         "variant": {
           "a2ui": "variant",
@@ -1606,24 +1576,32 @@
             "default",
             "destructive"
           ],
-          "default": "default",
-          "description": "Visual treatment. shadcn ships only these two variants — there is no success or warning variant — so other tones are built by adding utility classes through className."
-        },
-        "className": {
-          "a2ui": "className",
-          "kind": "string",
-          "description": "Additional CSS classes. This is the sanctioned way to produce tones shadcn does not ship a variant for (for example bg-amber-50 dark:bg-amber-950 for a warning) and to constrain the alert's width; the component is w-full and fills its parent."
+          "default": "default"
         }
       },
+      "required": [
+        "title"
+      ],
       "surface": {
         "routes": [
           {
             "from": [
-              "children"
+              "sub(alert-title).text"
             ],
-            "to": "slots:children"
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(alert-description).text"
+            ],
+            "to": "prop:description"
           }
-        ]
+        ],
+        "subs": {
+          "alert-action": {
+            "drop": "an action slot holds component children (a button), and routing a sub's children to a slot is T4's mechanism — dropped WITH RECORD until T4, not approximated (one production instance: ex.import-run-status)"
+          }
+        }
       }
     },
     {
@@ -1632,7 +1610,15 @@
       "commons": [
         "ComponentCommon"
       ],
-      "structural": {},
+      "structural": {
+        "label": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The label naming what is progressing.",
+          "synthNote": "Sourced by the T1 field-label donation; 2/2 worked-example progress bars sit inside a field."
+        }
+      },
       "required": [
         "value"
       ],
@@ -2015,7 +2001,7 @@
       "commit": "bd2851b (aestheticfunction/dspack, merged as d50f049 / PR #42 — contract 3.2.0, the dspack#40 field correction)",
       "sha256": "55a02863af330bde1af15e896aac93d6d78109a3bdbbc27ad253ea210a858c93"
     },
-    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts); zero casualties declared, zero fresh judgment.",
+    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts) + the A0 authoring resolutions and label additions (src/a0.test.ts — production profile JUDGMENT on the shipped vocabulary, the one deliberate exception to zero-fresh-judgment, each decision grounded in measured usage and proven by test); zero casualties declared.",
     "unresolvedAreDeliberate": "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better."
   }
 }

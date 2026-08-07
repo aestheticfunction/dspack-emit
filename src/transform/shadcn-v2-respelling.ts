@@ -187,3 +187,162 @@ export const SHADCN_V3_T2_PLANS: Record<string, Record<string, unknown>> = {
     },
   },
 };
+
+/**
+ * A0 authoring resolutions (the zero-new-capability milestone): production
+ * profile judgment for the families the shipped Identity/Routing/Repetition
+ * model already supports, proven by src/a0.test.ts. Six compound plans plus
+ * label-slot additions on the five controls that appear as a field's single
+ * control (the T1 donation destination). No new primitive anywhere.
+ *
+ * Grounded in measured usage across the 14 worked examples (contract 3.2.0):
+ * alert-title 5/5 + alert-description 5/5 carry the content; avatar-fallback
+ * carries text while avatar-image is an EMPTY node (the contract declares no
+ * src/alt — the dspack#39 class, recorded on the drop); scroll-area's two
+ * subs are scrollbar chrome; the field family follows the corrected
+ * declaration (dspack#40) with field as its own donating boundary.
+ */
+export const SHADCN_V3_A0_PLANS: Record<string, Record<string, unknown>> = {
+  alert: {
+    a2ui: "Alert",
+    dspackId: "alert",
+    commons: ["ComponentCommon"],
+    structural: {
+      title: {
+        schema: { type: "string" },
+        description: "The one-line heading naming what happened.",
+        synthNote: "Lifted from the alert-title sub (5/5 worked examples carry it there).",
+      },
+      description: {
+        schema: { type: "string" },
+        description: "Supporting detail under the title.",
+        synthNote: "Lifted from the alert-description sub.",
+      },
+    },
+    propMap: {
+      variant: { a2ui: "variant", kind: "enum", targetEnum: ["default", "destructive"], default: "default" },
+    },
+    required: ["title"],
+    surface: {
+      routes: [
+        { from: ["sub(alert-title).text"], to: "prop:title" },
+        { from: ["sub(alert-description).text"], to: "prop:description" },
+      ],
+      subs: {
+        "alert-action": {
+          drop:
+            "an action slot holds component children (a button), and routing a sub's children to a slot is T4's mechanism — dropped WITH RECORD until T4, not approximated (one production instance: ex.import-run-status)",
+        },
+      },
+    },
+  },
+  avatar: {
+    a2ui: "Avatar",
+    dspackId: "avatar",
+    commons: ["ComponentCommon"],
+    structural: {
+      fallback: {
+        schema: { type: "string" },
+        description: "Initials shown while no image is available.",
+        synthNote: "Lifted from the avatar-fallback sub's text.",
+      },
+    },
+    propMap: { size: { a2ui: "size", kind: "enum", targetEnum: ["sm", "default", "lg"], default: "default" } },
+    required: ["fallback"],
+    surface: {
+      routes: [{ from: ["sub(avatar-fallback).text"], to: "prop:fallback" }],
+      subs: {
+        "avatar-image": {
+          drop: "the contract declares no src/alt on avatar-image — an empty node carries nothing to project (contract-gap class, cf. dspack#39)",
+        },
+        "avatar-badge": { drop: "no worked example exercises it; no measured shape to project — revisit with usage evidence" },
+        "avatar-group": { drop: "no worked example exercises it; a grouped-avatars shape is repetition to be measured, not guessed" },
+        "avatar-group-count": { drop: "no worked example exercises it; belongs to the unmeasured avatar-group shape" },
+      },
+    },
+  },
+  "scroll-area": {
+    a2ui: "ScrollArea",
+    dspackId: "scroll-area",
+    commons: ["ComponentCommon"],
+    structural: {},
+    required: [],
+    surface: {
+      transparent: true,
+      subs: {
+        "scroll-area-scrollbar": { drop: "scrollbar chrome: presentation of the scroll container, not content" },
+        "scroll-area-thumb": { drop: "the scrollbar's drag indicator: chrome, not content" },
+      },
+    },
+  },
+  field: {
+    a2ui: "Field",
+    dspackId: "field",
+    commons: ["ComponentCommon"],
+    structural: {},
+    required: [],
+    surface: {
+      transparent: { donate: [{ from: "sub(field-label).text", to: "prop:label" }] },
+      subs: {
+        "field-content": "transparent",
+        "field-title": { asText: "h4" },
+        "field-description": { asText: "caption" },
+        "field-error": { drop: "validation state is runtime data the declarative surface does not carry (mirrors form-message)" },
+      },
+    },
+  },
+  "field-set": {
+    a2ui: "FieldSet",
+    dspackId: "field-set",
+    commons: ["ComponentCommon"],
+    structural: {},
+    required: [],
+    surface: {
+      transparent: true,
+      subs: { "field-legend": { asText: "h4" } },
+    },
+  },
+  "field-group": {
+    a2ui: "FieldGroup",
+    dspackId: "field-group",
+    commons: ["ComponentCommon"],
+    structural: {},
+    required: [],
+    surface: {
+      transparent: true,
+      subs: {
+        "field-separator": { drop: "a visual section boundary; its optional inline text is presentation of the divider, and no worked example carries one" },
+      },
+    },
+  },
+};
+
+/**
+ * A0 label additions: the five controls that appear as a field's (or
+ * form-item's) single control across the worked examples — input already
+ * declares `label`; these gain the same structural slot so the T1 donation
+ * has a declared destination. Merged onto the scaffolded plans (select's T2
+ * plan) by the fixture builder; nothing else on those plans changes.
+ */
+export const SHADCN_V3_A0_LABEL_ADDITIONS: Record<string, { description: string; synthNote: string }> = {
+  switch: {
+    description: "The label naming what the switch turns on or off.",
+    synthNote: "Sourced by the T1 field-label/form-label donation; 4/4 worked-example switches sit inside a field.",
+  },
+  checkbox: {
+    description: "The label naming what checking the box asserts.",
+    synthNote: "Sourced by the T1 form-label donation (ex.expense-report-form's billable field).",
+  },
+  textarea: {
+    description: "The label naming the long-text entry.",
+    synthNote: "Sourced by the T1 field-label/form-label donation, exactly as on input.",
+  },
+  progress: {
+    description: "The label naming what is progressing.",
+    synthNote: "Sourced by the T1 field-label donation; 2/2 worked-example progress bars sit inside a field.",
+  },
+  select: {
+    description: "The label naming the choice being made.",
+    synthNote: "Sourced by the T1 field-label/form-label donation when the select is a field's control (ex.invite-teammates-dialog).",
+  },
+};
