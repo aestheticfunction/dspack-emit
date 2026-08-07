@@ -1,0 +1,220 @@
+{
+ "model": "qwen3.6:35b",
+ "contract": "3.1.0 @ dspack 862ca95",
+ "gen": "0.2.2",
+ "emit": "0.5.0+T1 (main)",
+ "intents": [
+  "destructive-action",
+  "record-collection",
+  "structured-input",
+  "preference-settings",
+  "record-detail",
+  "overlay-task"
+ ],
+ "runs": [
+  {
+   "variant": "pre-T1",
+   "intent": "destructive-action",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    "",
+    "",
+    ""
+   ],
+   "firstBlocker": "failed-lint-exhausted",
+   "zeroControlFinding": true,
+   "seconds": 482
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "record-collection",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    "",
+    "",
+    ""
+   ],
+   "firstBlocker": "failed-lint-exhausted",
+   "zeroControlFinding": false,
+   "seconds": 325
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "structured-input",
+   "outcome": "passed",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": null,
+   "zeroControlFinding": false,
+   "seconds": 77
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "preference-settings",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": "emit refusal: unknown component 'form': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compone",
+   "zeroControlFinding": false,
+   "seconds": 144
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "record-detail",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": "emit refusal: unknown component 'form': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compone",
+   "zeroControlFinding": false,
+   "seconds": 107
+  },
+  {
+   "variant": "pre-T1",
+   "intent": "overlay-task",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": "emit refusal: unknown component 'dialog': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compo",
+   "zeroControlFinding": false,
+   "seconds": 105
+  },
+  {
+   "variant": "post-T1",
+   "intent": "destructive-action",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": "emit refusal: unknown component 'alert': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compon",
+   "zeroControlFinding": false,
+   "seconds": 68
+  },
+  {
+   "variant": "post-T1",
+   "intent": "record-collection",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    "",
+    "",
+    ""
+   ],
+   "firstBlocker": "failed-lint-exhausted",
+   "zeroControlFinding": true,
+   "seconds": 342
+  },
+  {
+   "variant": "post-T1",
+   "intent": "structured-input",
+   "outcome": "failed-gate",
+   "attempts": 2,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    "",
+    ""
+   ],
+   "firstBlocker": "emit refusal: unknown component 'form-field': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-c",
+   "zeroControlFinding": true,
+   "seconds": 156
+  },
+  {
+   "variant": "post-T1",
+   "intent": "preference-settings",
+   "outcome": "failed-adapter",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": "failed-adapter",
+   "zeroControlFinding": false,
+   "seconds": 598
+  },
+  {
+   "variant": "post-T1",
+   "intent": "record-detail",
+   "outcome": "failed-adapter",
+   "attempts": 2,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    "",
+    ""
+   ],
+   "firstBlocker": "failed-adapter",
+   "zeroControlFinding": true,
+   "seconds": 650
+  },
+  {
+   "variant": "post-T1",
+   "intent": "overlay-task",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    "",
+    "",
+    ""
+   ],
+   "firstBlocker": "failed-lint-exhausted",
+   "zeroControlFinding": false,
+   "seconds": 234
+  }
+ ],
+ "retries": [
+  {
+   "variant": "post-T1",
+   "intent": "preference-settings",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": "emit refusal: unknown component 'field-set': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-co",
+   "zeroControlFinding": false,
+   "seconds": 83,
+   "note": "single retry of an infrastructure adapter timeout (originals preserved below)"
+  },
+  {
+   "variant": "post-T1",
+   "intent": "record-detail",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstAttemptGates": "",
+   "perAttempt": [
+    ""
+   ],
+   "firstBlocker": "emit refusal: unknown component 'form-label': not a mapped component of the 'shadcn/ui v3 \u2014 coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-c",
+   "zeroControlFinding": false,
+   "seconds": 33,
+   "note": "single retry of an infrastructure adapter timeout (originals preserved below)"
+  }
+ ],
+ "method": {
+  "contract": "3.1.0 @ dspack 862ca95 (governance rule live)",
+  "gen": "0.2.2 (requiredCategories S3)",
+  "emit": "0.5.0+T1 @ 868721b",
+  "model": "qwen3.6:35b, maxRepairs 2, same six prompts as the T1 matrix",
+  "profiles": "same PRE/POST derivation as the T1 matrix"
+ },
+ "finding": "THE GOVERNANCE HOLE IS CLOSED: zero-control forms are caught at S3 with repairable findings (zeroControlFinding true in 4 runs) and the 'donation boundary found 0' emit blocker is GONE from the entire post-T1 column \u2014 the T1-exposed defect now fails at the layer that owns it. Authoritative post-T1 baseline: pre-T1 1/6 passed (structured-input); post-T1 0/6 with all failures at honest frontiers: unmapped components (alert, field-set, dialog), stray subs outside their compound (form-field, form-label \u2014 correctly refused), and lint-exhausted repairs where the model cannot satisfy the tightened governance within 2 repairs. Two adapter timeouts were retried once (originals preserved). T1's conversion effect on this model is limited by model quality, not representation: the named chain emits deterministically in the corpus tests; under generation, qwen3.6:35b's form output now dies at governance instead of sailing through as semantically empty \u2014 which is the system working."
+}
