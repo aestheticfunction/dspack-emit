@@ -199,7 +199,19 @@ write phase, and two same-phase writers on one destination refuse; layered
 writers in distinct phases are legal (a passthrough prop beats a harvested
 one, deterministically).
 
-**Repetition** collects repeated sub-structures into an array-valued prop:
+**Repetition** collects repeated sub-structures into an array-valued prop.
+T2's **item-mode** makes each matching descendant one record whose fields
+resolve on the item's own node (`self.text`, `self.props.<prop>`, `self.id`)
+— no joins, no sibling reads (a label paired by `htmlFor` is T3's declared
+join):
+
+```jsonc
+"collects": [
+  { "of": ["select-item"], "into": "prop:options", "item": { "label": "self.text" } }
+]
+```
+
+Table-mode expresses the three-level text shape:
 
 ```jsonc
 "collects": [

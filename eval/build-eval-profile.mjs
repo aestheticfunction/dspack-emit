@@ -38,7 +38,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { scaffoldProfile } = await import(join(root, "dist/transform/scaffold.js"));
 const { shadcnProfile } = await import(join(root, "dist/transform/profiles.js"));
-const { SHADCN_V2_SURFACES, SHADCN_V3_T1_SURFACES } = await import(join(root, "dist/transform/shadcn-v2-respelling.js"));
+const { SHADCN_V2_SURFACES, SHADCN_V3_T1_SURFACES, SHADCN_V3_T2_PLANS } = await import(join(root, "dist/transform/shadcn-v2-respelling.js"));
 
 export const CONTRACT_SHA256 = "ea87346f85965937cb2b18e3998f19da7ba3cee41b41572638d657f20b3f5565";
 export const CONTRACT_COMMIT = "48643ff (aestheticfunction/dspack, merged as b573637 / PR #35)";
@@ -77,6 +77,10 @@ export function buildEvalProfile() {
       const { propMap: _p, ...rest } = plan;
       return { ...rest, structural: {}, required: [], surface: structuredClone(t1) };
     }
+    // T2 resolutions (proven in src/t2.test.ts): a collecting plan IS a
+    // catalog component — the whole receiving plan is committed evidence.
+    const t2 = SHADCN_V3_T2_PLANS[plan.dspackId];
+    if (t2) return structuredClone(t2);
     return plan;
   });
 
@@ -87,7 +91,7 @@ export function buildEvalProfile() {
       "Downstream Studio consumes the pinned v2.3.0 contract with the shipped v1 profile; this fixture is measurement-only.",
     contract: { commit: CONTRACT_COMMIT, sha256: CONTRACT_SHA256 },
     derivation:
-      "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions proven in src/t1.test.ts; zero casualties declared, zero fresh judgment.",
+      "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts); zero casualties declared, zero fresh judgment.",
     unresolvedAreDeliberate:
       "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better.",
   };

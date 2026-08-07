@@ -108,6 +108,12 @@ export type Selector =
   | { kind: "subtree-text"; subs: string[] }
   /** This node's ordered children, emitted as instances. */
   | { kind: "children" }
+  /**
+   * T2: the node's own surface `id`. Item-local — only valid inside a
+   * collect's item fields, where each repeated item contributes the one
+   * datum it carries (the production radio-group-item carries nothing else).
+   */
+  | { kind: "self-id" }
   /** No source: a declarative A2UI action synthesized from a deterministic slug. */
   | { kind: "synthesized-action" };
 
@@ -182,6 +188,13 @@ export interface Route {
 export interface Collect {
   /** When this collect writes, relative to every other route and collect. */
   order: WriteOrder;
+  /**
+   * T2 item-mode: each descendant matching `of` becomes ONE RECORD whose
+   * fields resolve against that item's own node (self.text, self.props.X,
+   * self.id — never joins, never siblings). Mutually exclusive with the
+   * table-mode `item`/`scalar` nesting.
+   */
+  fields?: Record<string, Selector>;
   /**
    * True when every repetition's cells concatenate into ONE flat list (v1's
    * header semantics: two header rows append into a single column list);
@@ -266,6 +279,8 @@ export function describeSelector(s: Selector): string {
       return `sub(${s.subs.join("|")}).subtreeText`;
     case "children":
       return "children";
+    case "self-id":
+      return "self.id";
     case "synthesized-action":
       return "synthesized.action";
   }

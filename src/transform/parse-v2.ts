@@ -65,18 +65,26 @@ export interface SurfaceV2Route {
 }
 
 export interface SurfaceV2Collect {
-  /** Sections: direct children that open the collection. */
+  /** Sections (table-mode) or the repeated items themselves (item-mode). */
   of: string[];
   /** Array-valued destination (`prop:<name>`). */
   into: string;
-  /** `flat`: all rows concatenate into one list. `records`: one record per row. */
-  shape: "flat" | "records";
-  /** Record field carrying each row's cells; required when shape is `records`. */
+  /** table-mode: `flat` concatenates all rows into one list; `records` keeps one record per row. */
+  shape?: "flat" | "records";
+  /** table-mode: record field carrying each row's cells; required when shape is `records`. */
   field?: string;
-  /** Repetitions inside a section. */
-  row: string[];
-  /** Cells inside a repetition, flattened to their subtree text. */
-  cells: string[];
+  /** table-mode: repetitions inside a section. */
+  row?: string[];
+  /** table-mode: cells inside a repetition, flattened to their subtree text. */
+  cells?: string[];
+  /**
+   * T2 item-mode: each matching descendant becomes one record; every field
+   * resolves against THAT item's own node. Selectors: `self.text`,
+   * `self.props.<prop>`, `self.id`. No joins, no sibling reads — the
+   * htmlFor-paired sibling label the production radio-group carries is T3's
+   * declared join, measured and out of scope here.
+   */
+  item?: Record<string, string>;
 }
 
 export interface SurfaceV2Donate {
@@ -112,7 +120,7 @@ export interface SurfaceV2 {
 const ID = "[a-z][a-z0-9-]*";
 const PROP = "[A-Za-z][A-Za-z0-9]*";
 const SELECTOR = new RegExp(
-  `^(self\\.text|self\\.props\\.(${PROP})|sub\\((${ID}(?:\\|${ID})*)\\)\\.(text|label|firstText|subtreeText)|children|synthesized\\.action)$`,
+  `^(self\\.text|self\\.id|self\\.props\\.(${PROP})|sub\\((${ID}(?:\\|${ID})*)\\)\\.(text|label|firstText|subtreeText)|children|synthesized\\.action)$`,
 );
 const DESTINATION = new RegExp(`^(prop|textChild|slot|slots|action):(${PROP})$`);
 
@@ -120,6 +128,7 @@ export function parseSelector(raw: string): Selector | null {
   const m = SELECTOR.exec(raw);
   if (!m) return null;
   if (m[1] === "self.text") return { kind: "self-text" };
+  if (m[1] === "self.id") return { kind: "self-id" };
   if (m[1] === "children") return { kind: "children" };
   if (m[1] === "synthesized.action") return { kind: "synthesized-action" };
   if (m[2]) return { kind: "self-prop", prop: m[2] };
@@ -171,6 +180,8 @@ function orderOfSelector(s: Selector, to: Destination): WriteOrder {
       return WriteOrder.CollectLead;
     case "self-text":
       return to.kind === "text-child" ? WriteOrder.SelfTextChild : WriteOrder.SelfText;
+    case "self-id":
+      return WriteOrder.SelfText; // unreachable in routes: `compatible` refuses it
     case "synthesized-action":
       return WriteOrder.Action;
     case "children":
@@ -187,6 +198,8 @@ function compatible(s: Selector, to: Destination): boolean {
       return to.kind === "action";
     case "self-text":
       return to.kind === "prop" || to.kind === "text-child";
+    case "self-id":
+      return false; // item-field-only: a route may not read self.id
     default:
       return to.kind === "prop";
   }
@@ -384,6 +397,50 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
     }
     if (!declared.has(into.name)) {
       issues.push({ path: `${at}/into`, message: `destination '${into.name}' is not declared by this plan` });
+    }
+
+    // T2 item-mode and table-mode are distinct shapes; mixing them is a
+    // contradiction, not a preference.
+    const itemMode = c.item !== undefined;
+    const tableKeys = [c.shape, c.field, c.row, c.cells].some((v) => v !== undefined);
+    if (itemMode && tableKeys) {
+      issues.push({ path: at, message: "a collect is either item-mode (item) or table-mode (shape/row/cells/field), never both" });
+      continue;
+    }
+    if (itemMode) {
+      const fields: Record<string, Selector> = {};
+      let ok = true;
+      for (const [fieldName, raw] of Object.entries(c.item!)) {
+        const sel = parseSelector(raw);
+        const itemLocal = sel && (sel.kind === "self-text" || sel.kind === "self-prop" || sel.kind === "self-id");
+        if (!itemLocal) {
+          issues.push({
+            path: `${at}/item/${fieldName}`,
+            message: `'${raw}' is not an item field source (item fields resolve on the item's own node: self.text, self.props.<prop>, self.id — sibling reads and joins are T3)`,
+          });
+          ok = false;
+          continue;
+        }
+        fields[fieldName] = sel;
+      }
+      if (!ok || Object.keys(fields).length === 0) {
+        if (Object.keys(c.item!).length === 0) issues.push({ path: `${at}/item`, message: "an item-mode collect names at least one field" });
+        continue;
+      }
+      claim(into.name, WriteOrder.Collect, `collects/${i}`, `${at}/into`);
+      model.collects.push({
+        order: WriteOrder.Collect,
+        flatten: false,
+        of: c.of,
+        as: into,
+        fields,
+        origin: `v2:collects/${i}`,
+      });
+      continue;
+    }
+    if (c.shape === undefined || c.row === undefined || c.cells === undefined) {
+      issues.push({ path: at, message: "a table-mode collect declares shape, row, and cells (or use item-mode with `item`)" });
+      continue;
     }
     if (c.shape === "records" && !c.field) {
       issues.push({ path: `${at}/field`, message: "a records collect names the field its rows' cells land in" });

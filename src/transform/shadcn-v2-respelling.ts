@@ -79,3 +79,57 @@ export const SHADCN_V3_T1_SURFACES: Record<string, SurfaceV2> = {
     },
   },
 };
+
+/**
+ * T2 resolutions for the production v3 contract — item-mode collection
+ * spellings proven by src/t2.test.ts. `radio-group` collects what each item
+ * itself carries ({value: self.id}); its htmlFor-joined sibling labels are
+ * the measured T3 frontier, dropped with record until declared joins land.
+ * `select` is the pure homogeneous shape ({label: self.text}).
+ *
+ * Each entry carries the full receiving plan (structural options schema) —
+ * unlike T1's transparent plans, a collecting plan IS a catalog component.
+ */
+export const SHADCN_V3_T2_PLANS: Record<string, Record<string, unknown>> = {
+  "radio-group": {
+    a2ui: "RadioGroup",
+    dspackId: "radio-group",
+    commons: ["ComponentCommon"],
+    structural: {
+      options: {
+        schema: { type: "array", items: { type: "object", properties: { value: { type: "string" }, label: { type: "string" } }, required: ["value"], additionalProperties: false } },
+        description: "The selectable options, one record per item.",
+        synthNote: "A2UI models repeated options as data on the group; dspack models them as repeated sub-components (T2 item-mode collection).",
+      },
+    },
+    propMap: {
+      name: { a2ui: "name", kind: "string" },
+      defaultValue: { a2ui: "defaultValue", kind: "string" },
+    },
+    required: ["options"],
+    surface: { collects: [{ of: ["radio-group-item"], into: "prop:options", item: { value: "self.id" } }] },
+  },
+  select: {
+    a2ui: "Select",
+    dspackId: "select",
+    commons: ["ComponentCommon"],
+    structural: {
+      options: {
+        schema: { type: "array", items: { type: "object", properties: { label: { type: "string" } }, required: ["label"], additionalProperties: false } },
+        description: "The selectable options.",
+        synthNote: "A2UI models repeated options as data on the control (T2 item-mode collection).",
+      },
+    },
+    propMap: { defaultValue: { a2ui: "defaultValue", kind: "string" } },
+    required: ["options"],
+    surface: {
+      collects: [{ of: ["select-item"], into: "prop:options", item: { label: "self.text" } }],
+      subs: {
+        "select-trigger": { drop: "the trigger renders from the bound value, not authored content" },
+        "select-value": { drop: "the visible value is runtime state derived from the selection" },
+        "select-label": { drop: "group headings are not carried by the flat options shape" },
+        "select-separator": { drop: "visual grouping chrome with no data meaning" },
+      },
+    },
+  },
+};
