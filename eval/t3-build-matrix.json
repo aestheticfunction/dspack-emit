@@ -1,0 +1,64 @@
+{
+ "model": "qwen3.6:35b",
+ "contract": "3.1.0 @ dspack 862ca95",
+ "gen": "0.2.2",
+ "emit": "0.5.0+T3 (feat/t3-joins e3d4d60)",
+ "intents": [
+  "destructive-action",
+  "record-collection",
+  "structured-input",
+  "preference-settings",
+  "record-detail",
+  "overlay-task"
+ ],
+ "runs": [
+  {
+   "variant": "post-T3",
+   "intent": "destructive-action",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstBlocker": "failed-lint-exhausted",
+   "seconds": 292
+  },
+  {
+   "variant": "post-T3",
+   "intent": "record-collection",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstBlocker": "failed-lint-exhausted",
+   "seconds": 437
+  },
+  {
+   "variant": "post-T3",
+   "intent": "structured-input",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: unknown component 'form-label': not a mapped component of the 'shadcn/ui v3 — coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-c",
+   "seconds": 129
+  },
+  {
+   "variant": "post-T3",
+   "intent": "preference-settings",
+   "outcome": "failed-gate",
+   "attempts": 2,
+   "firstBlocker": "emit refusal: unknown component 'card-footer': not a mapped component of the 'shadcn/ui v3 — coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-",
+   "seconds": 186
+  },
+  {
+   "variant": "post-T3",
+   "intent": "record-detail",
+   "outcome": "failed-lint-exhausted",
+   "attempts": 3,
+   "firstBlocker": "failed-lint-exhausted",
+   "seconds": 303
+  },
+  {
+   "variant": "post-T3",
+   "intent": "overlay-task",
+   "outcome": "failed-gate",
+   "attempts": 1,
+   "firstBlocker": "emit refusal: unknown component 'dialog': not a mapped component of the 'shadcn/ui v3 — coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compo",
+   "seconds": 100
+  }
+ ]
+}
