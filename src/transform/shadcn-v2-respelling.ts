@@ -59,3 +59,23 @@ export const SHADCN_V2_SURFACES: Record<string, SurfaceV2> = {
     ],
   },
 };
+
+/**
+ * T1 resolutions for the production v3 contract — the transparent-identity
+ * spellings proven by src/t1.test.ts against the named production failure
+ * (`card > form > form-field > form-item > form-label + input`). Consumed by
+ * the eval fixture builder as committed mapping evidence; the fixture's other
+ * unresolved decisions stay deliberately open.
+ */
+export const SHADCN_V3_T1_SURFACES: Record<string, SurfaceV2> = {
+  form: {
+    transparent: true,
+    subs: {
+      "form-field": "transparent",
+      "form-control": "transparent",
+      "form-item": { transparent: { donate: [{ from: "sub(form-label).text", to: "prop:label" }] } },
+      "form-description": { asText: "caption" },
+      "form-message": { drop: "validation state is runtime data the declarative surface does not carry" },
+    },
+  },
+};

@@ -354,10 +354,16 @@ describe("load-time refusal matrix (v2 grammar)", () => {
     expect(out).toContain("one sub, one disposition");
   });
 
-  it("unimplemented capability spellings are refused by the schema, not reinterpreted", () => {
-    // T1 plan-level transparency, T1 donation, T3 joins — none parseable.
-    expect(refusal({ transparent: true })).not.toBe("LOADED");
+  it("unimplemented capability spellings are refused; T1's are now implemented with their own rules", () => {
+    // T1 landed: `transparent` is a real spelling — on THIS plan it refuses
+    // for its true reason (a transparent plan declares no catalog surface,
+    // and Widget declares structural slots), not because the grammar is
+    // closed to it.
+    expect(refusal({ transparent: true })).toContain("declares no catalog surface");
+    // `onto` remains INTERNAL vocabulary: donation is authored via
+    // transparent.donate blocks; a raw onto key on a route stays refused.
     expect(refusal({ routes: [{ from: ["self.text"], to: "prop:label", onto: "control" }] })).not.toBe("LOADED");
+    // T3 joins have not landed and stay refused, never reinterpreted.
     expect(refusal({ collects: [{ of: ["s"], into: "prop:items", shape: "records", field: "f", row: ["r"], cells: ["c"], joinOn: "id" }] })).not.toBe("LOADED");
   });
 });

@@ -31,6 +31,7 @@ const read = (p) => JSON.parse(readFileSync(p, "utf8"));
 const classify = (reason) => {
   if (reason === undefined) return "UNRESOLVED";
   if (reason.startsWith("consumed into")) return "routed";
+  if (reason.startsWith("donated to")) return "routed";
   if (reason.startsWith("collected")) return "collected";
   if (reason.startsWith("dropped")) return "dropped";
   if (reason.startsWith("transparent") || reason.startsWith("re-identified")) return "transparent";
