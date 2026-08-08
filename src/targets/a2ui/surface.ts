@@ -864,11 +864,25 @@ class SurfaceEmitter {
               if ("kind" in jSel && jSel.kind === "joined-children") {
                 // The slot-valued field: the counterpart's children emit as
                 // instances; the record carries the reference. Repetition's
-                // ratified slot form — not T4 multi-slot routing.
-                const kids = collectChildren(cp.n);
-                if (kids.length === 0) continue;
-                const ids = kids.map((k, ki) =>
-                  this.emitNode(k.node, `${cp.nPath}${k.suffix}[${ki}]`, [...treePath, Band.Children, records.length]),
+                // ratified slot form — not T4 multi-slot routing. The child
+                // list goes through the SAME rewriting as any parent's
+                // (mirroring the transparent-root host pattern), so a
+                // transparent top-level child inside a joined panel
+                // dissolves instead of refusing as an unroutable instance.
+                const spliced = this.rewriteChildren(cp.n, emptySurfaceModel(), cp.nPath, treePath);
+                if (spliced.length === 0) continue;
+                const ids = spliced.map((k, ki) =>
+                  "textVariant" in k
+                    ? this.emitTextPrimitive(
+                        k.text,
+                        `${slug(key)}_${slug(k.textVariant)}`,
+                        cp.nPath,
+                        [...treePath, Band.Children, records.length, ki],
+                        Phase.TextChild,
+                        0,
+                        k.textVariant,
+                      )
+                    : this.emitNode(k.node, `${cp.nPath}${k.suffix}[${ki}]`, [...treePath, Band.Children, records.length], k.donations ?? []),
                 );
                 record[fieldName] =
                   ids.length === 1 ? ids[0] : this.wrapInColumn(ids, `${slug(key)}`, cp.nPath, treePath);

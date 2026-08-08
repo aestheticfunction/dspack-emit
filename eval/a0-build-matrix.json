@@ -1,0 +1,205 @@
+{
+ "model": "qwen3.6:35b",
+ "contract": "3.2.0 @ dspack d50f049",
+ "gen": "0.3.0 (S2 containment)",
+ "emit": "0.5.0+A0 (feat/containment-rebaseline e467068)",
+ "intents": [
+  "destructive-action",
+  "record-collection",
+  "structured-input",
+  "preference-settings",
+  "record-detail",
+  "overlay-task"
+ ],
+ "runs": [
+  {
+   "intent": "destructive-action",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 21,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 12,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 9,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required component 'alert-dialog' does not appear in the surface.",
+   "seconds": 281
+  },
+  {
+   "intent": "record-collection",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 54,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 54,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 54,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: 'form-item' contains no 'form-label' to carry the required content.",
+   "seconds": 375
+  },
+  {
+   "intent": "structured-input",
+   "outcome": "failed-gate",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:FAIL S3:PASS",
+     "containment": {
+      "nodes": 39,
+      "violations": 4
+     },
+     "s2ContainmentFindings": 4
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:PASS",
+     "containment": {
+      "nodes": 19,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 1,
+   "firstBlocker": "gate A3 failed",
+   "seconds": 167
+  },
+  {
+   "intent": "preference-settings",
+   "outcome": "passed",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:PASS",
+     "containment": {
+      "nodes": 9,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 0,
+   "firstBlocker": null,
+   "seconds": 123
+  },
+  {
+   "intent": "record-detail",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 40,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 40,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 40,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required category 'interactive' (min 1) not found among descendants (found 0) — no descendant of this node is a 'interactive' member; member",
+   "seconds": 244
+  },
+  {
+   "intent": "overlay-task",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 15,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 15,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 15,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required prop 'htmlFor' is not present on 'label' itself.",
+   "seconds": 227
+  }
+ ]
+}

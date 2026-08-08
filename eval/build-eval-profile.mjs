@@ -38,10 +38,10 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { scaffoldProfile } = await import(join(root, "dist/transform/scaffold.js"));
 const { shadcnProfile } = await import(join(root, "dist/transform/profiles.js"));
-const { SHADCN_V2_SURFACES, SHADCN_V3_T1_SURFACES, SHADCN_V3_T2_PLANS, SHADCN_V3_T3_PLANS } = await import(join(root, "dist/transform/shadcn-v2-respelling.js"));
+const { SHADCN_V2_SURFACES, SHADCN_V3_T1_SURFACES, SHADCN_V3_T2_PLANS, SHADCN_V3_T3_PLANS, SHADCN_V3_A0_PLANS, SHADCN_V3_A0_LABEL_ADDITIONS } = await import(join(root, "dist/transform/shadcn-v2-respelling.js"));
 
-export const CONTRACT_SHA256 = "ea87346f85965937cb2b18e3998f19da7ba3cee41b41572638d657f20b3f5565";
-export const CONTRACT_COMMIT = "48643ff (aestheticfunction/dspack, merged as b573637 / PR #35)";
+export const CONTRACT_SHA256 = "55a02863af330bde1af15e896aac93d6d78109a3bdbbc27ad253ea210a858c93";
+export const CONTRACT_COMMIT = "bd2851b (aestheticfunction/dspack, merged as d50f049 / PR #42 — contract 3.2.0, the dspack#40 field correction)";
 
 export function buildEvalProfile() {
   const contractBytes = readFileSync(join(root, "eval/shadcn-v3.dspack.json"));
@@ -84,8 +84,26 @@ export function buildEvalProfile() {
     // T3 resolutions (proven in src/t3.test.ts): declared key joins.
     const t3 = SHADCN_V3_T3_PLANS[plan.dspackId];
     if (t3) return structuredClone(t3);
+    // A0 authoring resolutions (proven in src/a0.test.ts): production
+    // profile judgment on the shipped primitive vocabulary — no new
+    // capability. Compound plans replace; leaves keep their scaffold.
+    const a0 = SHADCN_V3_A0_PLANS[plan.dspackId];
+    if (a0) return structuredClone(a0);
     return plan;
   });
+
+  // A0 label additions: the five field-control leaves gain the structural
+  // `label` slot the T1 donation lands on (input already declares it).
+  // Applied after every replacement so select's T2 plan receives it too.
+  for (const [id, note] of Object.entries(SHADCN_V3_A0_LABEL_ADDITIONS)) {
+    const plan = profile.components.find((c) => c.dspackId === id);
+    if (plan && !(plan.structural ?? {}).label) {
+      plan.structural = {
+        ...(plan.structural ?? {}),
+        label: { schema: { type: "string" }, description: note.description, synthNote: note.synthNote },
+      };
+    }
+  }
 
   profile["x-eval"] = {
     purpose:
@@ -94,7 +112,7 @@ export function buildEvalProfile() {
       "Downstream Studio consumes the pinned v2.3.0 contract with the shipped v1 profile; this fixture is measurement-only.",
     contract: { commit: CONTRACT_COMMIT, sha256: CONTRACT_SHA256 },
     derivation:
-      "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts); zero casualties declared, zero fresh judgment.",
+      "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts) + the A0 authoring resolutions and label additions (src/a0.test.ts — production profile JUDGMENT on the shipped vocabulary, the one deliberate exception to zero-fresh-judgment, each decision grounded in measured usage and proven by test); zero casualties declared.",
     unresolvedAreDeliberate:
       "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better.",
   };
