@@ -42,6 +42,10 @@ jobs:
             exit 1
           fi
       - run: npm ci
+      # ingestion.test.ts imports demo/src; demo/ is a separate npm project
+      # with its own lockfile (react/vite). Mirror test.yml's two-step install
+      # so the release job's `npm test` collects every suite (emit#35).
+      - run: npm ci --prefix demo
       - run: npm test
       - run: npm run build
       - name: Publish (public, with provenance)
