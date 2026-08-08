@@ -109,6 +109,16 @@ export type Selector =
   /** This node's ordered children, emitted as instances. */
   | { kind: "children" }
   /**
+   * T4: the ordered children of exactly one descendant instance of the named
+   * sub, emitted as instances into a slot. The sub is the compound's declared
+   * structural region (dialog-content, sheet-footer, …); its children go
+   * through the same rewriting as any parent's child list, so nested subs
+   * resolve by THIS plan's dispositions and claimed subs are skipped. Zero
+   * instances leave the destination absent (gate A3 arbitrates); more than
+   * one refuses — a slot names one region, never a series.
+   */
+  | { kind: "sub-children"; subs: string[] }
+  /**
    * T2: the node's own surface `id`. Item-local — only valid inside a
    * collect's item fields, where each repeated item contributes the one
    * datum it carries (the production radio-group-item carries nothing else).
@@ -155,6 +165,8 @@ export enum WriteOrder {
   /** The node's own text. */
   SelfText = 40,
   SelfTextChild = 41,
+  /** T4 slot routes: instance emission from a named sub's children. */
+  Slot = 45,
   /** Synthesis with no source in the subtree. */
   Action = 50,
   /** Children as instance references, once every value destination is settled. */
@@ -307,6 +319,8 @@ export function describeSelector(s: Selector): string {
       return `sub(${s.subs.join("|")}).subtreeText`;
     case "children":
       return "children";
+    case "sub-children":
+      return `sub(${s.subs.join("|")}).children`;
     case "self-id":
       return "self.id";
     case "synthesized-action":
@@ -346,13 +360,15 @@ export function referencedSubs(model: SurfaceModel): Map<string, string> {
   };
 
   const fromSelector = (s: Selector, how: string): void => {
-    if (s.kind === "sub-text" || s.kind === "sub-label" || s.kind === "sub-text-lift" || s.kind === "subtree-text") {
+    if (s.kind === "sub-text" || s.kind === "sub-label" || s.kind === "sub-text-lift" || s.kind === "subtree-text" || s.kind === "sub-children") {
       for (const id of s.subs) note(id, how);
     }
   };
 
   for (const r of model.routes) {
-    for (const s of r.from) fromSelector(s, `consumed into ${describeDestination(r.to)}`);
+    for (const s of r.from) {
+      fromSelector(s, s.kind === "sub-children" ? `routed to ${describeDestination(r.to)}` : `consumed into ${describeDestination(r.to)}`);
+    }
   }
 
   const walk = (c: Collect): void => {

@@ -16,12 +16,16 @@
  *   dspack#40 correction moved the field wrapper trio right-side-up —
  *   field keeps 5 inner parts; field-set and field-group are compounds
  *   of their own with 1 sub each, so the denominator moved 106 → 104)
- *    54 resolved  — the transplanted families (card 5, table 7,
+ *    86 resolved  — the transplanted families (card 5, table 7,
  *                   alert-dialog 8), T1's form family (6), T2's
- *                   radio-group (1) and select (7), T3's tabs (3), and
+ *                   radio-group (1) and select (7), T3's tabs (3),
  *                   the A0 authoring pass (alert 3, avatar 5,
- *                   scroll-area 2, field 5, field-set 1, field-group 1)
- *    50 unresolved — real, deliberate, and the measure of the T4+ work
+ *                   scroll-area 2, field 5, field-set 1, field-group 1),
+ *                   and T4 (dialog 7, sheet 7, popover 6,
+ *                   dropdown-menu 12 — the last measured as data-shaped)
+ *    18 unresolved — real, deliberate: accordion (3), breadcrumb (6),
+ *                   pagination (6), tooltip (3) — the T6/upstream and
+ *                   deferred-shape tail
  *
  * The v2 contract gate refusing this fixture against the v3 contract is not a
  * failure; it is the fatal coverage gate doing on the production corpus
@@ -58,19 +62,19 @@ describe("the production-v3 evaluation fixture", () => {
     expect(profile.casualtyComponents).toEqual([]);
   });
 
-  it("the fatal coverage gate refuses it against the v3 contract: 50 unresolved decisions, each pathed", () => {
+  it("the fatal coverage gate refuses it against the v3 contract: 18 unresolved decisions, each pathed", () => {
     try {
       transformFromJson(contract, { profile: loadProfile(structuredClone(fixtureJson)) });
-      expect.unreachable("50 open representation decisions must refuse, not emit");
+      expect.unreachable("18 open representation decisions must refuse, not emit");
     } catch (e) {
       expect(e).toBeInstanceOf(ProfileContractError);
       const issues = (e as ProfileContractError).issues;
-      expect(issues).toHaveLength(50);
+      expect(issues).toHaveLength(18);
       expect(issues.every((i) => i.message.includes("unresolved"))).toBe(true);
     }
   });
 
-  it("derived coverage: 104 subs, 54 resolved (transplants + T1-T3 + A0), 50 open", () => {
+  it("derived coverage: 104 subs, 86 resolved (transplants + T1-T4 + A0), 18 open", () => {
     const profile = loadProfile(structuredClone(fixtureJson));
     const byId = new Map(profile.components.map((p: ComponentPlan) => [p.dspackId, p]));
     let resolved = 0;
@@ -92,7 +96,7 @@ describe("the production-v3 evaluation fixture", () => {
       }
     }
     expect(resolved + unresolved).toBe(104);
-    expect(unresolved).toBe(50);
-    expect(Object.fromEntries(resolvedByCompound)).toEqual({ card: 5, table: 7, "alert-dialog": 8, form: 6, "radio-group": 1, select: 7, tabs: 3, alert: 3, avatar: 5, "scroll-area": 2, field: 5, "field-set": 1, "field-group": 1 });
+    expect(unresolved).toBe(18);
+    expect(Object.fromEntries(resolvedByCompound)).toEqual({ card: 5, table: 7, "alert-dialog": 8, form: 6, "radio-group": 1, select: 7, tabs: 3, alert: 3, avatar: 5, "scroll-area": 2, field: 5, "field-set": 1, "field-group": 1, dialog: 7, sheet: 7, popover: 6, "dropdown-menu": 12 });
   });
 });

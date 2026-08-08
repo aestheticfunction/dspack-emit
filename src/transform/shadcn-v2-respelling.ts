@@ -346,3 +346,130 @@ export const SHADCN_V3_A0_LABEL_ADDITIONS: Record<string, { description: string;
     synthNote: "Sourced by the T1 field-label/form-label donation when the select is a field's control (ex.invite-teammates-dialog).",
   },
 };
+
+/**
+ * T4 resolutions: multi-slot compounds, proven by src/t4.test.ts. The new
+ * primitive is ONE closed spelling — `sub(x).children -> slot:name` — the
+ * region's ordered children emitted as instances, the slot carrying the
+ * reference (multi wraps in Column, exactly like T3's joined-children).
+ *
+ * Measured shapes (contract 3.2.0 worked examples):
+ *  - dialog/sheet: trigger and close labels are TEXT lifts (the alert-dialog
+ *    idiom); title/description lift; header dissolves; content minus the
+ *    claimed regions is the body slot; footer minus close is the footer slot.
+ *  - popover: same family; its measured body is EMPTY after the header
+ *    dissolves — the slot stays absent and gate A3 arbitrates. The unused
+ *    popover-anchor drops pending usage evidence.
+ *  - dropdown-menu is DATA-shaped, not slot-shaped: its items are a T2
+ *    item-mode collect and its labels are scalar text routes — resolved with
+ *    ZERO new primitive. The historic taxonomy called it T4; measurement
+ *    says otherwise, and the plan follows the measurement.
+ */
+export const SHADCN_V3_T4_PLANS: Record<string, Record<string, unknown>> = {
+  dialog: {
+    a2ui: "Dialog",
+    dspackId: "dialog",
+    commons: ["ComponentCommon"],
+    structural: {
+      title: { schema: { type: "string" }, description: "The dialog's title (aria-labelledby).", synthNote: "Lifted from dialog-title." },
+      description: { schema: { type: "string" }, description: "Supporting context under the title.", synthNote: "Lifted from dialog-description." },
+      triggerLabel: { schema: { type: "string" }, description: "Label of the control that opens the dialog.", synthNote: "Lifted from the trigger's button label (the alert-dialog idiom)." },
+      closeLabel: { schema: { type: "string" }, description: "Label of the explicit close control.", synthNote: "Lifted from dialog-close." },
+      child: { schema: { $ref: "#/$defs/ComponentId" }, description: "The dialog body: content minus the claimed regions, Column-wrapped when several.", synthNote: "T4 slot route from dialog-content's children." },
+      footer: { schema: { $ref: "#/$defs/ComponentId" }, description: "The action row minus the close control.", synthNote: "T4 slot route from dialog-footer's children." },
+    },
+    required: ["title"],
+    surface: {
+      routes: [
+        { from: ["sub(dialog-title).text"], to: "prop:title" },
+        { from: ["sub(dialog-description).text"], to: "prop:description" },
+        { from: ["sub(dialog-trigger).label", "sub(dialog-trigger).firstText"], to: "prop:triggerLabel" },
+        { from: ["sub(dialog-close).text"], to: "prop:closeLabel" },
+        { from: ["sub(dialog-content).children"], to: "slot:child" },
+        { from: ["sub(dialog-footer).children"], to: "slot:footer" },
+      ],
+      subs: { "dialog-header": "transparent" },
+    },
+  },
+  sheet: {
+    a2ui: "Sheet",
+    dspackId: "sheet",
+    commons: ["ComponentCommon"],
+    structural: {
+      title: { schema: { type: "string" }, description: "The panel's title.", synthNote: "Lifted from sheet-title." },
+      description: { schema: { type: "string" }, description: "Supporting copy beneath the title.", synthNote: "Lifted from sheet-description." },
+      triggerLabel: { schema: { type: "string" }, description: "Label of the control that opens the sheet.", synthNote: "Lifted from the trigger's button label." },
+      closeLabel: { schema: { type: "string" }, description: "Label of the explicit close control.", synthNote: "Lifted from sheet-close." },
+      child: { schema: { $ref: "#/$defs/ComponentId" }, description: "The panel body: content minus the claimed regions, Column-wrapped when several.", synthNote: "T4 slot route from sheet-content's children." },
+      footer: { schema: { $ref: "#/$defs/ComponentId" }, description: "The action row minus the close control.", synthNote: "T4 slot route from sheet-footer's children." },
+    },
+    required: ["title"],
+    surface: {
+      routes: [
+        { from: ["sub(sheet-title).text"], to: "prop:title" },
+        { from: ["sub(sheet-description).text"], to: "prop:description" },
+        { from: ["sub(sheet-trigger).label", "sub(sheet-trigger).firstText"], to: "prop:triggerLabel" },
+        { from: ["sub(sheet-close).text"], to: "prop:closeLabel" },
+        { from: ["sub(sheet-content).children"], to: "slot:child" },
+        { from: ["sub(sheet-footer).children"], to: "slot:footer" },
+      ],
+      subs: { "sheet-header": "transparent" },
+    },
+  },
+  popover: {
+    a2ui: "Popover",
+    dspackId: "popover",
+    commons: ["ComponentCommon"],
+    structural: {
+      title: { schema: { type: "string" }, description: "The panel's visible title.", synthNote: "Lifted from popover-title." },
+      description: { schema: { type: "string" }, description: "Supporting copy beneath the title.", synthNote: "Lifted from popover-description." },
+      triggerLabel: { schema: { type: "string" }, description: "Label of the control that toggles the popover.", synthNote: "Lifted from the trigger's button label." },
+      child: { schema: { $ref: "#/$defs/ComponentId" }, description: "The panel body beyond title and description; absent when the measured body is empty.", synthNote: "T4 slot route from popover-content's children; the worked example's body is empty after the header dissolves." },
+    },
+    required: ["triggerLabel"],
+    surface: {
+      routes: [
+        { from: ["sub(popover-title).text"], to: "prop:title" },
+        { from: ["sub(popover-description).text"], to: "prop:description" },
+        { from: ["sub(popover-trigger).label", "sub(popover-trigger).firstText"], to: "prop:triggerLabel" },
+        { from: ["sub(popover-content).children"], to: "slot:child" },
+      ],
+      subs: {
+        "popover-header": "transparent",
+        "popover-anchor": { drop: "no worked example exercises it; an alternative positioning reference is presentation until measured" },
+      },
+    },
+  },
+  "dropdown-menu": {
+    a2ui: "DropdownMenu",
+    dspackId: "dropdown-menu",
+    commons: ["ComponentCommon"],
+    structural: {
+      triggerLabel: { schema: { type: "string" }, description: "Label of the element that opens the menu.", synthNote: "Lifted from the trigger's button label." },
+      menuLabel: { schema: { type: "string" }, description: "The non-interactive heading above the items.", synthNote: "Lifted from dropdown-menu-label." },
+      items: {
+        schema: { type: "array", items: { type: "object", properties: { label: { type: "string" } }, required: ["label"], additionalProperties: false } },
+        description: "The actionable menu items, in order.",
+        synthNote: "T2 item-mode collect — the menu is DATA, not slots; measurement overruled the historic T4 classification.",
+      },
+    },
+    required: ["items"],
+    surface: {
+      routes: [
+        { from: ["sub(dropdown-menu-trigger).label", "sub(dropdown-menu-trigger).firstText"], to: "prop:triggerLabel" },
+        { from: ["sub(dropdown-menu-label).text"], to: "prop:menuLabel" },
+      ],
+      collects: [{ of: ["dropdown-menu-item"], into: "prop:items", item: { label: "self.text" } }],
+      subs: {
+        "dropdown-menu-separator": { drop: "a visual divider between item groups; grouping is not carried by the flat items shape" },
+        "dropdown-menu-group": { drop: "grouping chrome; no worked example gives it meaning beyond adjacency" },
+        "dropdown-menu-checkbox-item": { drop: "no worked example exercises it; a toggleable item is a different record shape to measure, not guess" },
+        "dropdown-menu-radio-group": { drop: "no worked example exercises it" },
+        "dropdown-menu-radio-item": { drop: "no worked example exercises it" },
+        "dropdown-menu-sub": { drop: "nested menus are unmeasured; representing them is a decision for evidence, not defaults" },
+        "dropdown-menu-sub-trigger": { drop: "belongs to the unmeasured nested-menu shape" },
+        "dropdown-menu-sub-content": { drop: "belongs to the unmeasured nested-menu shape" },
+      },
+    },
+  },
+};

@@ -346,7 +346,7 @@
                     "description": "Ordered fallback chain; the first selector that yields a value wins.",
                     "items": {
                       "type": "string",
-                      "pattern": "^(self\\.text|self\\.props\\.[A-Za-z][A-Za-z0-9]*|sub\\([a-z][a-z0-9-]*(\\|[a-z][a-z0-9-]*)*\\)\\.(text|label|firstText|subtreeText)|children|synthesized\\.action)$"
+                      "pattern": "^(self\\.text|self\\.props\\.[A-Za-z][A-Za-z0-9]*|sub\\([a-z][a-z0-9-]*(\\|[a-z][a-z0-9-]*)*\\)\\.(text|label|firstText|subtreeText|children)|children|synthesized\\.action)$"
                     }
                   },
                   "to": {
