@@ -1,0 +1,148 @@
+{
+ "model": "qwen3.6:35b",
+ "contract": "3.2.0 @ dspack d50f049",
+ "gen": "0.3.0 (S2 containment)",
+ "emit": "0.5.0+T4 (feat/t4-slots db327d7)",
+ "intents": [
+  "destructive-action",
+  "record-collection",
+  "structured-input",
+  "preference-settings",
+  "record-detail",
+  "overlay-task"
+ ],
+ "runs": [
+  {
+   "intent": "destructive-action",
+   "outcome": "failed-adapter",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 21,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "",
+     "containment": null,
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 1,
+   "firstBlocker": "failed-adapter",
+   "seconds": 676
+  },
+  {
+   "intent": "record-collection",
+   "outcome": "failed-lint-exhausted",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 33,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 1,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 33,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    },
+    {
+     "index": 2,
+     "gates": "S1:PASS S2:PASS S3:FAIL",
+     "containment": {
+      "nodes": 33,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 2,
+   "firstBlocker": "lint S3 governance: Required category 'interactive' (min 1) not found among descendants (found 0) — no descendant of this node is a 'interactive' member; member",
+   "seconds": 228
+  },
+  {
+   "intent": "structured-input",
+   "outcome": "passed",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:PASS",
+     "containment": {
+      "nodes": 11,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 0,
+   "firstBlocker": null,
+   "seconds": 107
+  },
+  {
+   "intent": "preference-settings",
+   "outcome": "failed-gate",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:PASS",
+     "containment": {
+      "nodes": 11,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 0,
+   "firstBlocker": "emit refusal: unknown component 'card-footer': not a mapped component of the 'shadcn/ui v3 — coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-",
+   "seconds": 122
+  },
+  {
+   "intent": "record-detail",
+   "outcome": "failed-gate",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:PASS",
+     "containment": {
+      "nodes": 26,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 0,
+   "firstBlocker": "emit refusal: unknown component 'label': not a mapped component of the 'shadcn/ui v3 — coverage-evaluation catalog (NOT production, NOT Studio's profile)' profile (sub-compon",
+   "seconds": 213
+  },
+  {
+   "intent": "overlay-task",
+   "outcome": "passed",
+   "attempts": [
+    {
+     "index": 0,
+     "gates": "S1:PASS S2:PASS S3:PASS",
+     "containment": {
+      "nodes": 15,
+      "violations": 0
+     },
+     "s2ContainmentFindings": 0
+    }
+   ],
+   "repairs": 0,
+   "firstBlocker": null,
+   "seconds": 99
+  }
+ ]
+}
