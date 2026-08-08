@@ -1,0 +1,48 @@
+name: release
+
+# Publishes @aestheticfunction/dspack-emit to npm when a version tag is pushed.
+#
+# Auth: npm trusted publishing (OIDC) — no NPM_TOKEN secret in the repo.
+# One-time setup on npmjs.com (package settings -> Trusted publisher):
+#   repository aestheticfunction/dspack-emit, workflow release.yml.
+# Provenance attestations are generated automatically for trusted publishes.
+#
+# Guards:
+#   - tag must equal the package.json version (prevents accidental mismatches)
+#   - full test suite runs before publish (in addition to prepublishOnly)
+#   - publishing an already-published version fails the job (npm rejects dupes)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC for npm trusted publishing / provenance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24 bundles npm >= 11.5, the minimum for OIDC trusted
+          # publishing. Node 20's npm 10 skips the token exchange entirely
+          # and the unauthenticated PUT fails as E404 (v0.1.1's first run).
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - name: Verify tag matches package.json version
+        run: |
+          pkg="$(node -p "require('./package.json').version")"
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$pkg" != "$tag" ]; then
+            echo "tag v$tag does not match package.json version $pkg" >&2
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Publish (public, with provenance)
+        run: npm publish --access public
