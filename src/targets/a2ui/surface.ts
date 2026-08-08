@@ -321,6 +321,10 @@ class SurfaceEmitter {
 
     for (const { route, rule } of model.routes.map((route, rule) => ({ route, rule }))) {
       if (route.order === WriteOrder.Consume || route.order === WriteOrder.Children) continue;
+      if (route.order === WriteOrder.Slot) {
+        steps.push({ order: route.order, run: () => this.applySlotRoute(node, model, route, rule, instance, path, treePath) });
+        continue;
+      }
       steps.push({ order: route.order, run: () => this.applyRoute(node, route, rule, instance, id, path, treePath) });
     }
     for (const [rule, collect] of model.collects.entries()) {
@@ -332,6 +336,9 @@ class SurfaceEmitter {
     }
     if (model.collects.some((c) => c.as.kind !== "inline")) {
       steps.push({ order: WriteOrder.Collect + 1, run: () => this.closeCollects(node, model, path, treePath) });
+    }
+    if (model.routes.some((r) => r.order === WriteOrder.Slot)) {
+      steps.push({ order: WriteOrder.Slot + 1, run: () => this.closeSlots(node, model, path, treePath) });
     }
 
     steps.sort((a, b) => a.order - b.order);
@@ -994,6 +1001,135 @@ class SurfaceEmitter {
    * is either an explicit drop or an unrecognized sub — both warned, never
    * silently ignored — followed by the composition casualty for the compound.
    */
+  /**
+   * T4: one slot route — the ordered children of exactly one descendant
+   * instance of the named sub become instances, and the slot carries the
+   * reference (multi wraps in the profile's wrap component, exactly like
+   * T3's joined-children). The region's child list goes through the SAME
+   * rewriting as any parent's (this plan's dispositions apply to nested
+   * subs), with subs claimed by sibling routes skipped — their consumption
+   * is their own route's ledger entry. Zero regions leave the destination
+   * absent (gate A3 arbitrates); several refuse: a slot names one region.
+   */
+  private applySlotRoute(
+    node: SurfaceNode,
+    model: SurfaceModel,
+    route: Route,
+    rule: number,
+    instance: Json,
+    path: string,
+    treePath: readonly number[],
+  ): void {
+    const sel = route.from[0];
+    if (sel.kind !== "sub-children") return;
+    const region = sel.subs[0];
+
+    const found: Array<{ n: SurfaceNode; nPath: string }> = [];
+    const locate = (n: SurfaceNode, nPath: string): void => {
+      for (const c of collectChildren(n)) {
+        if (c.node.component === region) found.push({ n: c.node, nPath: `${nPath}${c.suffix}` });
+        locate(c.node, `${nPath}${c.suffix}`);
+      }
+    };
+    locate(node, path);
+
+    if (found.length === 0) return; // absent region: the destination stays absent and A3 arbitrates
+    if (found.length > 1) {
+      throw new EmitSurfaceError(
+        `slot route '${route.origin}': ${found.length} instances of '${region}' in this '${node.component}'; ` +
+          `a slot names ONE region — exactly one may appear`,
+        path,
+      );
+    }
+
+    const claimed = new Set<string>();
+    for (const r of model.routes) {
+      if (r === route) continue;
+      for (const s of r.from) if ("subs" in s) for (const id of s.subs as string[]) claimed.add(id);
+    }
+    for (const c of model.collects) for (const id of [...c.of, ...(c.join?.with ?? [])]) claimed.add(id);
+
+    const src = found[0];
+    const spliced = this.rewriteChildren(src.n, model, src.nPath, treePath, claimed);
+    if (spliced.length === 0) return; // an empty region carries nothing; absent, A3 arbitrates
+    const ids = spliced.map((k, ki) =>
+      "textVariant" in k
+        ? this.emitTextPrimitive(
+            k.text,
+            `${slug(region)}_${slug(k.textVariant)}`,
+            src.nPath,
+            [...treePath, Band.BeforeChildren, rule, ki],
+            Phase.SubContentFlatten,
+            rule,
+            k.textVariant,
+          )
+        : this.emitNode(k.node, `${src.nPath}${k.suffix}[${ki}]`, [...treePath, Band.BeforeChildren, rule, ki], k.donations ?? []),
+    );
+    const ref = ids.length === 1 ? ids[0] : this.wrapInColumn(ids, slug(region), src.nPath, treePath);
+    const landed = this.write(instance, route.to.name, ref);
+    this.diagnostics.pushFidelity(
+      {
+        source: `${src.nPath} (${region} children)`,
+        destination: `${route.to.name} @ ${path} (${node.component})`,
+        origin: route.origin,
+        kind: landed ? "moved" : "dropped",
+        class: landed ? "maps-cleanly" : "lossy",
+        note: landed
+          ? `region '${region}' emitted as instances; the slot carries the reference`
+          : `'${route.to.name}' already written; the region's reference did not land`,
+      },
+      treePath,
+      Band.BeforeChildren,
+      Phase.SubContentFlatten,
+      rule,
+    );
+  }
+
+  /**
+   * Fail-closed closure for a slot-routed compound: every DIRECT child must
+   * be a claimed region, a route-consumed sub, a collected family, or carry
+   * a disposition — an unclaimed child is structural content with no
+   * destination, and approximating it silently is exactly what this engine
+   * refuses to do.
+   */
+  private closeSlots(
+    node: SurfaceNode,
+    model: SurfaceModel,
+    path: string,
+    treePath: readonly number[],
+  ): void {
+    const claimed = new Set<string>();
+    for (const r of model.routes) for (const s of r.from) if ("subs" in s) for (const id of s.subs as string[]) claimed.add(id);
+    for (const c of model.collects) for (const id of [...c.of, ...(c.join?.with ?? [])]) claimed.add(id);
+
+    for (const child of collectChildren(node)) {
+      const c = child.node.component;
+      if (claimed.has(c) || c in model.subIdentity) continue;
+      const reason = model.drops[c];
+      if (reason !== undefined) {
+        const childPath = `${path}${child.suffix}`;
+        this.diagnostics.push(
+          { code: "surface-sub-dropped", message: `${childPath}: '${c}' dropped: ${reason}.` },
+          treePath,
+          Band.BeforeChildren,
+          Phase.SubContentFlatten,
+        );
+        this.diagnostics.pushFidelity(
+          { source: `${childPath} (${c})`, destination: "(discarded)", origin: `drops.${c}`, kind: "dropped", class: "lossy", note: reason },
+          treePath,
+          Band.BeforeChildren,
+          Phase.SubContentFlatten,
+        );
+        continue;
+      }
+      throw new EmitSurfaceError(
+        `'${c}' is a direct child of slot-routed compound '${node.component}' with no destination — ` +
+          `every region must be claimed by a route, collected, or carry a disposition`,
+        `${path}${child.suffix}`,
+      );
+    }
+  }
+
   private closeCollects(
     node: SurfaceNode,
     model: SurfaceModel,
@@ -1284,12 +1420,20 @@ class SurfaceEmitter {
     model: SurfaceModel,
     path: string,
     treePath: readonly number[],
+    /**
+     * T4: subs claimed by SIBLING routes of the enclosing compound (text
+     * harvests, other slot sources). A claimed sub is skipped silently at any
+     * dissolution depth — its consumption is ledgered by its own route, and
+     * recording it twice would say it was dropped when it was moved.
+     */
+    claimedSubs: ReadonlySet<string> = new Set(),
   ): RewrittenChild[] {
     const push = (w: Warning) => this.diagnostics.push(w, treePath, Band.BeforeChildren, Phase.ChildRewrite);
     const ledger = (f: SurfaceFidelityEntry) =>
       this.diagnostics.pushFidelity(f, treePath, Band.BeforeChildren, Phase.ChildRewrite);
 
     const visit = (n: SurfaceNode, suffix: string, ctx: SurfaceModel, out: RewrittenChild[]): void => {
+      if (claimedSubs.has(n.component)) return;
       // An authored drop is warn-and-discard, exactly like the collect path.
       const dropReason = ctx.drops[n.component];
       if (dropReason !== undefined) {

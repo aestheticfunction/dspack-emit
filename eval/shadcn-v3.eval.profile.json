@@ -179,38 +179,95 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "title": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "string"
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.invite-teammates-dialog'."
+          "description": "The dialog's title (aria-labelledby).",
+          "synthNote": "Lifted from dialog-title."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting context under the title.",
+          "synthNote": "Lifted from dialog-description."
+        },
+        "triggerLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the control that opens the dialog.",
+          "synthNote": "Lifted from the trigger's button label (the alert-dialog idiom)."
+        },
+        "closeLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the explicit close control.",
+          "synthNote": "Lifted from dialog-close."
+        },
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The dialog body: content minus the claimed regions, Column-wrapped when several.",
+          "synthNote": "T4 slot route from dialog-content's children."
+        },
+        "footer": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The action row minus the close control.",
+          "synthNote": "T4 slot route from dialog-footer's children."
         }
       },
       "required": [
-        "children"
+        "title"
       ],
-      "propMap": {
-        "open": {
-          "a2ui": "open",
-          "kind": "boolean",
-          "description": "Controlled open state of the dialog."
-        },
-        "modal": {
-          "a2ui": "modal",
-          "kind": "boolean",
-          "description": "Whether the dialog blocks interaction with the rest of the page."
-        }
-      },
       "surface": {
         "routes": [
           {
             "from": [
-              "children"
+              "sub(dialog-title).text"
             ],
-            "to": "slots:children"
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(dialog-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(dialog-trigger).label",
+              "sub(dialog-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(dialog-close).text"
+            ],
+            "to": "prop:closeLabel"
+          },
+          {
+            "from": [
+              "sub(dialog-content).children"
+            ],
+            "to": "slot:child"
+          },
+          {
+            "from": [
+              "sub(dialog-footer).children"
+            ],
+            "to": "slot:footer"
           }
-        ]
+        ],
+        "subs": {
+          "dialog-header": "transparent"
+        }
       }
     },
     {
@@ -363,38 +420,96 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "triggerLabel": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "string"
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.workspace-members-directory'."
+          "description": "Label of the element that opens the menu.",
+          "synthNote": "Lifted from the trigger's button label."
+        },
+        "menuLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "The non-interactive heading above the items.",
+          "synthNote": "Lifted from dropdown-menu-label."
+        },
+        "items": {
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "description": "The actionable menu items, in order.",
+          "synthNote": "T2 item-mode collect — the menu is DATA, not slots; measurement overruled the historic T4 classification."
         }
       },
       "required": [
-        "children"
+        "items"
       ],
-      "propMap": {
-        "open": {
-          "a2ui": "open",
-          "kind": "boolean",
-          "description": "Controlled open state."
-        },
-        "modal": {
-          "a2ui": "modal",
-          "kind": "boolean",
-          "description": "Whether the menu blocks interaction with the rest of the page."
-        }
-      },
       "surface": {
         "routes": [
           {
             "from": [
-              "children"
+              "sub(dropdown-menu-trigger).label",
+              "sub(dropdown-menu-trigger).firstText"
             ],
-            "to": "slots:children"
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(dropdown-menu-label).text"
+            ],
+            "to": "prop:menuLabel"
           }
-        ]
+        ],
+        "collects": [
+          {
+            "of": [
+              "dropdown-menu-item"
+            ],
+            "into": "prop:items",
+            "item": {
+              "label": "self.text"
+            }
+          }
+        ],
+        "subs": {
+          "dropdown-menu-separator": {
+            "drop": "a visual divider between item groups; grouping is not carried by the flat items shape"
+          },
+          "dropdown-menu-group": {
+            "drop": "grouping chrome; no worked example gives it meaning beyond adjacency"
+          },
+          "dropdown-menu-checkbox-item": {
+            "drop": "no worked example exercises it; a toggleable item is a different record shape to measure, not guess"
+          },
+          "dropdown-menu-radio-group": {
+            "drop": "no worked example exercises it"
+          },
+          "dropdown-menu-radio-item": {
+            "drop": "no worked example exercises it"
+          },
+          "dropdown-menu-sub": {
+            "drop": "nested menus are unmeasured; representing them is a decision for evidence, not defaults"
+          },
+          "dropdown-menu-sub-trigger": {
+            "drop": "belongs to the unmeasured nested-menu shape"
+          },
+          "dropdown-menu-sub-content": {
+            "drop": "belongs to the unmeasured nested-menu shape"
+          }
+        }
       }
     },
     {
@@ -508,91 +623,72 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "title": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "string"
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.usage-help-affordances'."
+          "description": "The panel's visible title.",
+          "synthNote": "Lifted from popover-title."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting copy beneath the title.",
+          "synthNote": "Lifted from popover-description."
+        },
+        "triggerLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the control that toggles the popover.",
+          "synthNote": "Lifted from the trigger's button label."
+        },
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The panel body beyond title and description; absent when the measured body is empty.",
+          "synthNote": "T4 slot route from popover-content's children; the worked example's body is empty after the header dissolves."
         }
       },
       "required": [
-        "children"
+        "triggerLabel"
       ],
-      "propMap": {
-        "open": {
-          "a2ui": "open",
-          "kind": "boolean",
-          "description": "On Popover (root). Controlled open state. Pair with onOpenChange; omit both to let the component manage its own state."
-        },
-        "defaultOpen": {
-          "a2ui": "defaultOpen",
-          "kind": "boolean",
-          "description": "On Popover (root). Initial open state for uncontrolled usage. Do not combine with open."
-        },
-        "modal": {
-          "a2ui": "modal",
-          "kind": "boolean",
-          "description": "On Popover (root). When false (the default) focus is not trapped, outside pointer events pass through, and the page keeps scrolling. When true, focus is trapped inside the content, outside pointer events are disabled, the rest of the page is marked aria-hidden, and scroll is locked. Set true only when the popover's task must be completed or abandoned before anything else."
-        },
-        "side": {
-          "a2ui": "side",
-          "kind": "enum",
-          "targetEnum": [
-            "top",
-            "right",
-            "bottom",
-            "left"
-          ],
-          "default": "bottom",
-          "description": "On PopoverContent. Preferred edge of the anchor to open against. This is a preference, not a guarantee — with avoidCollisions left on, the popover flips to the opposite side when the preferred side would overflow the viewport."
-        },
-        "align": {
-          "a2ui": "align",
-          "kind": "enum",
-          "targetEnum": [
-            "start",
-            "center",
-            "end"
-          ],
-          "default": "center",
-          "description": "On PopoverContent. Alignment along the perpendicular axis of side. shadcn's PopoverContent sets this to center explicitly, matching the Radix default."
-        },
-        "sideOffset": {
-          "a2ui": "sideOffset",
-          "kind": "number",
-          "description": "On PopoverContent. Distance in pixels between the anchor and the content along the side axis. shadcn overrides the Radix default of 0 to 4 so the panel's shadow reads as separate from the trigger."
-        },
-        "alignOffset": {
-          "a2ui": "alignOffset",
-          "kind": "number",
-          "description": "On PopoverContent. Offset in pixels along the alignment axis. Use to nudge the panel into optical alignment with an icon trigger; prefer changing align first."
-        },
-        "avoidCollisions": {
-          "a2ui": "avoidCollisions",
-          "kind": "boolean",
-          "description": "On PopoverContent. When true the popover flips and shifts to stay inside the viewport. Leave enabled; disabling it will let the panel render partly offscreen on small viewports."
-        },
-        "collisionPadding": {
-          "a2ui": "collisionPadding",
-          "kind": "number",
-          "description": "On PopoverContent. Minimum distance in pixels to keep from the collision boundary. Raise it when a sticky header or bottom bar would otherwise sit on top of the panel."
-        },
-        "asChild": {
-          "a2ui": "asChild",
-          "kind": "boolean",
-          "description": "On PopoverTrigger and PopoverAnchor. Merges props and behavior onto the single child element instead of rendering the default element. Use asChild on PopoverTrigger to make a Button the trigger without nesting a button inside a button."
-        }
-      },
       "surface": {
         "routes": [
           {
             "from": [
-              "children"
+              "sub(popover-title).text"
             ],
-            "to": "slots:children"
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(popover-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(popover-trigger).label",
+              "sub(popover-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(popover-content).children"
+            ],
+            "to": "slot:child"
           }
-        ]
+        ],
+        "subs": {
+          "popover-header": "transparent",
+          "popover-anchor": {
+            "drop": "no worked example exercises it; an alternative positioning reference is presentation until measured"
+          }
+        }
       }
     },
     {
@@ -706,65 +802,95 @@
         "ComponentCommon"
       ],
       "structural": {
-        "children": {
+        "title": {
           "schema": {
-            "$ref": "#/$defs/ChildList"
+            "type": "string"
           },
-          "description": "Child component IDs, in order.",
-          "synthNote": "Scaffolded: observed with child nodes in worked example 'ex.customer-context-sheet'."
+          "description": "The panel's title.",
+          "synthNote": "Lifted from sheet-title."
+        },
+        "description": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Supporting copy beneath the title.",
+          "synthNote": "Lifted from sheet-description."
+        },
+        "triggerLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the control that opens the sheet.",
+          "synthNote": "Lifted from the trigger's button label."
+        },
+        "closeLabel": {
+          "schema": {
+            "type": "string"
+          },
+          "description": "Label of the explicit close control.",
+          "synthNote": "Lifted from sheet-close."
+        },
+        "child": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The panel body: content minus the claimed regions, Column-wrapped when several.",
+          "synthNote": "T4 slot route from sheet-content's children."
+        },
+        "footer": {
+          "schema": {
+            "$ref": "#/$defs/ComponentId"
+          },
+          "description": "The action row minus the close control.",
+          "synthNote": "T4 slot route from sheet-footer's children."
         }
       },
       "required": [
-        "children"
+        "title"
       ],
-      "propMap": {
-        "open": {
-          "a2ui": "open",
-          "kind": "boolean",
-          "description": "On Sheet (root). Controlled open state. Pair with onOpenChange."
-        },
-        "defaultOpen": {
-          "a2ui": "defaultOpen",
-          "kind": "boolean",
-          "description": "On Sheet (root). Initial open state for uncontrolled usage."
-        },
-        "modal": {
-          "a2ui": "modal",
-          "kind": "boolean",
-          "description": "On Sheet (root). When true (the default) focus is trapped in the panel, the rest of the page is hidden from assistive technology, and outside pointer events are blocked. Setting it false breaks the expectation the overlay sets — the page still looks dimmed and unavailable while remaining interactive."
-        },
-        "side": {
-          "a2ui": "side",
-          "kind": "enum",
-          "targetEnum": [
-            "right",
-            "left",
-            "top",
-            "bottom"
-          ],
-          "default": "right",
-          "description": "On SheetContent. Which viewport edge the panel is pinned to and animates from. Left and right panels are full height; top and bottom panels size to their content."
-        },
-        "showCloseButton": {
-          "a2ui": "showCloseButton",
-          "kind": "boolean",
-          "description": "On SheetContent. Renders the built-in close button in the panel's top-right corner, an icon button with visually hidden \"Close\" text. Set false only when supplying an explicit SheetClose elsewhere in the panel — never to remove the visible dismissal affordance entirely."
-        },
-        "asChild": {
-          "a2ui": "asChild",
-          "kind": "boolean",
-          "description": "On SheetTrigger and SheetClose. Merges props and behavior onto the single child element. Use it to make an existing Button open or close the sheet without nesting a button inside a button."
-        }
-      },
       "surface": {
         "routes": [
           {
             "from": [
-              "children"
+              "sub(sheet-title).text"
             ],
-            "to": "slots:children"
+            "to": "prop:title"
+          },
+          {
+            "from": [
+              "sub(sheet-description).text"
+            ],
+            "to": "prop:description"
+          },
+          {
+            "from": [
+              "sub(sheet-trigger).label",
+              "sub(sheet-trigger).firstText"
+            ],
+            "to": "prop:triggerLabel"
+          },
+          {
+            "from": [
+              "sub(sheet-close).text"
+            ],
+            "to": "prop:closeLabel"
+          },
+          {
+            "from": [
+              "sub(sheet-content).children"
+            ],
+            "to": "slot:child"
+          },
+          {
+            "from": [
+              "sub(sheet-footer).children"
+            ],
+            "to": "slot:footer"
           }
-        ]
+        ],
+        "subs": {
+          "sheet-header": "transparent"
+        }
       }
     },
     {
@@ -2001,7 +2127,7 @@
       "commit": "bd2851b (aestheticfunction/dspack, merged as d50f049 / PR #42 — contract 3.2.0, the dspack#40 field correction)",
       "sha256": "55a02863af330bde1af15e896aac93d6d78109a3bdbbc27ad253ea210a858c93"
     },
-    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts) + the A0 authoring resolutions and label additions (src/a0.test.ts — production profile JUDGMENT on the shipped vocabulary, the one deliberate exception to zero-fresh-judgment, each decision grounded in measured usage and proven by test); zero casualties declared.",
+    "derivation": "scaffoldProfile(v3) + the six shipped plans transplanted with their byte-proven v2 re-spelling + the T1 transparent-identity resolutions (src/t1.test.ts) + the T2 item-mode collection plans (src/t2.test.ts) + the T3 declared-join plans (src/t3.test.ts) + the T4 slot-route plans (src/t4.test.ts) + the A0 authoring resolutions and label additions (src/a0.test.ts — production profile JUDGMENT on the shipped vocabulary, the one deliberate exception to zero-fresh-judgment, each decision grounded in measured usage and proven by test); zero casualties declared.",
     "unresolvedAreDeliberate": "Every unresolved sub-component listed by the coverage report is a real, open representation decision — do not resolve them here to make a number look better."
   }
 }

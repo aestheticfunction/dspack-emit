@@ -211,6 +211,25 @@ join):
 ]
 ```
 
+T4's **slot route** — `sub(x).children` into `slot:name` — turns a named
+region's ordered children into instances, the slot carrying the reference
+(multi wraps in the profile's wrap component). One region, one slot: no
+fallback chains (`sub(a|b).children` refuses), duplicate sources refuse at
+load, several instances of the region refuse at emit, zero leave the
+destination absent for gate A3. Subs claimed by sibling routes are skipped
+inside the region at any dissolution depth, and a slot-routed compound
+closes fail-closed — an unclaimed direct child refuses:
+
+```jsonc
+"routes": [
+  { "from": ["sub(dialog-title).text"], "to": "prop:title" },
+  { "from": ["sub(dialog-trigger).label", "sub(dialog-trigger).firstText"], "to": "prop:triggerLabel" },
+  { "from": ["sub(dialog-content).children"], "to": "slot:child" },
+  { "from": ["sub(dialog-footer).children"], "to": "slot:footer" }
+],
+"subs": { "dialog-header": "transparent" }
+```
+
 T3's **declared key join** pairs a repeated family with a sibling family —
 the profile names the relation, the emitter never infers one (no positions,
 no nearest-sibling, no similarity). Fields from the joined side may be

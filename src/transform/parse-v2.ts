@@ -134,7 +134,7 @@ export interface SurfaceV2 {
 const ID = "[a-z][a-z0-9-]*";
 const PROP = "[A-Za-z][A-Za-z0-9]*";
 const SELECTOR = new RegExp(
-  `^(self\\.text|self\\.id|self\\.props\\.(${PROP})|sub\\((${ID}(?:\\|${ID})*)\\)\\.(text|label|firstText|subtreeText)|children|synthesized\\.action)$`,
+  `^(self\\.text|self\\.id|self\\.props\\.(${PROP})|sub\\((${ID}(?:\\|${ID})*)\\)\\.(text|label|firstText|subtreeText|children)|children|synthesized\\.action)$`,
 );
 const DESTINATION = new RegExp(`^(prop|textChild|slot|slots|action):(${PROP})$`);
 
@@ -154,6 +154,8 @@ export function parseSelector(raw: string): Selector | null {
       return { kind: "sub-label", subs };
     case "firstText":
       return { kind: "sub-text-lift", subs };
+    case "children":
+      return { kind: "sub-children", subs };
     default:
       return { kind: "subtree-text", subs };
   }
@@ -198,6 +200,8 @@ function orderOfSelector(s: Selector, to: Destination): WriteOrder {
       return WriteOrder.SelfText; // unreachable in routes: `compatible` refuses it
     case "synthesized-action":
       return WriteOrder.Action;
+    case "sub-children":
+      return WriteOrder.Slot;
     case "children":
       return WriteOrder.Children;
   }
@@ -208,6 +212,9 @@ function compatible(s: Selector, to: Destination): boolean {
   switch (s.kind) {
     case "children":
       return to.kind === "slot" || to.kind === "slots";
+    case "sub-children":
+      // T4: instance emission from a named region lands in exactly one slot.
+      return to.kind === "slot";
     case "synthesized-action":
       return to.kind === "action";
     case "self-text":
@@ -569,7 +576,23 @@ export function parseSurfaceV2(surface: SurfaceV2, plan: ComponentPlan, path: st
   // also emit that subtree as children.
   model.consumesSubtree =
     model.collects.length > 0 ||
-    model.routes.some((r) => r.order === WriteOrder.Consume || r.order === WriteOrder.CollectLead);
+    model.routes.some((r) => r.order === WriteOrder.Consume || r.order === WriteOrder.CollectLead || r.order === WriteOrder.Slot);
+
+  // T4: one region, one slot — a sub named by several sub-children routes
+  // (or the same route naming several subs) would make one child list land
+  // twice; and a mixed from-list has no fallback semantics for regions.
+  const slotRoutes = model.routes.filter((r) => r.from.some((sel) => sel.kind === "sub-children"));
+  for (const r of slotRoutes) {
+    if (r.from.length !== 1 || r.from[0].kind !== "sub-children") {
+      issues.push({ path, message: `a sub(x).children route takes exactly one selector — regions have no fallback chain` });
+    } else if (r.from[0].subs.length !== 1) {
+      issues.push({ path, message: `sub(${r.from[0].subs.join("|")}).children names ${r.from[0].subs.length} subs; a slot route names exactly one region` });
+    }
+  }
+  const slotSources = slotRoutes.flatMap((r) => (r.from[0].kind === "sub-children" ? r.from[0].subs : []));
+  for (const dup of slotSources.filter((id, i) => slotSources.indexOf(id) !== i)) {
+    issues.push({ path, message: `sub-component '${dup}' is the source of more than one slot route; one region, one slot` });
+  }
 
   const childrenRoute = model.routes.find((r) => r.from[0].kind === "children");
   if (model.consumesSubtree && childrenRoute) {
