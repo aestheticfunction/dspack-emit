@@ -1432,10 +1432,27 @@ class SurfaceEmitter {
     const ledger = (f: SurfaceFidelityEntry) =>
       this.diagnostics.pushFidelity(f, treePath, Band.BeforeChildren, Phase.ChildRewrite);
 
-    const visit = (n: SurfaceNode, suffix: string, ctx: SurfaceModel, out: RewrittenChild[]): void => {
+    // Layered dissolution contexts (emit#37, ratified 2026-08-07). A
+    // dissolving boundary shadows the enclosing compound contexts where they
+    // overlap, but does not erase them: a component's disposition is resolved
+    // against the stack of enclosing models, innermost first, so an outer
+    // compound's sub (e.g. `card-footer`) keeps its disposition when it
+    // appears inside a dissolved inner boundary (e.g. a transparent `field`).
+    // A single-frame stack resolves identically to the pre-amendment single
+    // `ctx` — the byte pins prove it.
+    const resolve = <T>(stack: readonly SurfaceModel[], pick: (m: SurfaceModel) => T | undefined): T | undefined => {
+      for (const m of stack) {
+        const v = pick(m);
+        if (v !== undefined) return v;
+      }
+      return undefined;
+    };
+
+    const visit = (n: SurfaceNode, suffix: string, stack: readonly SurfaceModel[], out: RewrittenChild[]): void => {
       if (claimedSubs.has(n.component)) return;
-      // An authored drop is warn-and-discard, exactly like the collect path.
-      const dropReason = ctx.drops[n.component];
+      // An authored drop is warn-and-discard, exactly like the collect path —
+      // resolved through the ancestor chain (inner shadows outer).
+      const dropReason = resolve(stack, (m) => m.drops[n.component]);
       if (dropReason !== undefined) {
         push({ code: "surface-sub-dropped", message: `${path}: '${n.component}' dropped: ${dropReason}.` });
         ledger({ source: `${path} (${n.component})`, destination: "(discarded)", origin: `drops.${n.component}`, kind: "dropped", class: "lossy", note: dropReason });
@@ -1443,7 +1460,8 @@ class SurfaceEmitter {
       }
 
       // T1: a child COMPONENT whose plan is transparent dissolves here — its
-      // subtree governed by ITS OWN model, not the surrounding one.
+      // subtree governed by ITS OWN model PUSHED ONTO the enclosing stack, so
+      // the boundary shadows but does not erase the outer contexts.
       const childPlan = this.byDspackId.get(n.component);
       const childModel = childPlan ? surfaceModelOf(childPlan) : undefined;
       if (childModel?.transparent) {
@@ -1455,18 +1473,20 @@ class SurfaceEmitter {
           class: "lossy",
           note: "transparent identity: the component dissolves; its own structure is not carried",
         });
-        dissolve(n, suffix, childModel, childModel.transparentDonate, `plan.${n.component}`, out);
+        dissolve(n, suffix, [childModel, ...stack], childModel.transparentDonate, `plan.${n.component}`, out);
         return;
       }
 
-      const identity = ctx.subIdentity[n.component];
+      const identity = resolve(stack, (m) => m.subIdentity[n.component]);
       if (identity?.kind === "transparent") {
         push({
           code: "surface-sub-flattened",
           message: `${path}: grouping sub-component '${n.component}' spliced inline (subFlatten strategy); its own structure is not carried.`,
         });
         ledger({ source: `${path} (${n.component})`, destination: "(children rise in place)", origin: `subs.${n.component}`, kind: "flattened", class: "lossy", note: "transparent grouping dissolved; its own structure is not carried" });
-        dissolve(n, suffix, ctx, identity.donate ?? [], `subs.${n.component}`, out);
+        // A grouping sub has no model of its own; its children continue under
+        // the same enclosing stack that resolved it.
+        dissolve(n, suffix, stack, identity.donate ?? [], `subs.${n.component}`, out);
         return;
       }
       if (identity?.kind === "as-text") {
@@ -1500,7 +1520,7 @@ class SurfaceEmitter {
     const dissolve = (
       n: SurfaceNode,
       suffix: string,
-      innerCtx: SurfaceModel,
+      innerStack: readonly SurfaceModel[],
       donations: readonly Donation[],
       originLabel: string,
       out: RewrittenChild[],
@@ -1545,7 +1565,7 @@ class SurfaceEmitter {
           }
           continue;
         }
-        visit(child.node, child.suffix, innerCtx, spliced);
+        visit(child.node, child.suffix, innerStack, spliced);
       }
 
       if (pending.length > 0) {
@@ -1575,7 +1595,7 @@ class SurfaceEmitter {
     };
 
     const rootOut: RewrittenChild[] = [];
-    for (const child of collectChildren(node)) visit(child.node, child.suffix, model, rootOut);
+    for (const child of collectChildren(node)) visit(child.node, child.suffix, [model], rootOut);
     return rootOut;
   }
 
