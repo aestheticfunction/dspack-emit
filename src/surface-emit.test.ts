@@ -8,8 +8,9 @@
  * - Compound flattening lands the documented projection (title/description/
  *   cancelLabel/confirmLabel/triggerLabel + synthesized action).
  * - Unknown components fail with a typed error (never silently dropped).
- * - A CSR violating the emitted component's required props FAILS gate A3 —
- *   the gate is proven non-vacuous.
+ * - A CSR that would emit an instance missing a required prop REFUSES at
+ *   emitSurface (with the cause); gate A3 stays non-vacuous for
+ *   hand-authored surfaces — defense in depth, proven separately.
  * - Emission is deterministic.
  */
 import { readFileSync } from "node:fs";
@@ -111,16 +112,19 @@ describe("emitSurface: worked example (ex.delete-account-confirmation)", () => {
     }
   });
 
-  it("lift is relocation, never synthesis: a trigger with no text anywhere still fails A3", () => {
+  it("lift is relocation, never synthesis: a trigger with no text anywhere refuses at emission", () => {
+    // Nothing exists to lift, so nothing is synthesized — and instead of
+    // emitting an AlertDialog missing its required `triggerLabel` for gate A3
+    // to refuse downstream, emitSurface now refuses the emission itself,
+    // naming the unfilled requirement and where the value should have come
+    // from. (Gate A3 keeps full-schema rigor for hand-authored surfaces — see
+    // the non-vacuity test below.)
     const bare: DspackSurface = structuredClone(workedExample.surface);
     const trigger = bare.root.children![0].children![0];
     trigger.children = [{ component: "button", props: { variant: "destructive" }, children: [{ component: "badge" }] }];
-    const { messages: bareMessages, warnings: bareWarnings } = emitSurface(bare, doc);
-    const dialog = componentsOf(bareMessages).find((c) => c.component === "AlertDialog")!;
-    expect(dialog.triggerLabel).toBeUndefined();
-    expect(bareWarnings.map((w) => w.code)).not.toContain("surface-label-lifted");
-    const { validation } = transform(doc, "0.9.1", { messages: bareMessages });
-    expect(validation.gates.find((g) => g.name === "instance")!.pass).toBe(false); // A3 refuses, as before
+    expect(() => emitSurface(bare, doc)).toThrowError(EmitSurfaceError);
+    expect(() => emitSurface(bare, doc)).toThrowError(/required prop 'triggerLabel' has no value after emission/);
+    expect(() => emitSurface(bare, doc)).toThrowError(/alert-dialog-trigger/);
   });
 });
 
@@ -184,7 +188,7 @@ describe("emitSurface: failure modes", () => {
     expect(() => emitSurface(bad, doc)).toThrowError(/does not match contract name/);
   });
 
-  it("gate A3 is non-vacuous: an AlertDialog missing its title fails instance validation", () => {
+  it("emitSurface refuses an AlertDialog missing its title, with the sub-component cause", () => {
     const missingTitle: DspackSurface = {
       dspackSurface: "0.1",
       system: "shadcn/ui",
@@ -205,10 +209,38 @@ describe("emitSurface: failure modes", () => {
         ],
       },
     };
-    const { messages } = emitSurface(missingTitle, doc);
+    expect(() => emitSurface(missingTitle, doc)).toThrowError(EmitSurfaceError);
+    expect(() => emitSurface(missingTitle, doc)).toThrowError(/required prop 'title' has no value after emission/);
+    expect(() => emitSurface(missingTitle, doc)).toThrowError(/alert-dialog-title/);
+  });
+
+  it("gate A3 is non-vacuous: a hand-authored AlertDialog missing its title fails instance validation", () => {
+    // Defense in depth: the emitter's guard refuses upstream, but gate A3
+    // must still catch invalid instances that arrive without going through
+    // emitSurface at all — and its (now branch-scoped) errors must name the
+    // genuine problem.
+    const messages = [
+      {
+        version: "v0.9",
+        updateComponents: {
+          surfaceId: "s",
+          components: [
+            {
+              id: "root",
+              component: "AlertDialog",
+              triggerLabel: "Delete",
+              cancelLabel: "Cancel",
+              action: { event: { name: "delete", context: {} } },
+            },
+          ],
+        },
+      },
+    ];
     const { validation } = transform(doc, "0.9.1", { messages });
     const instance = validation.gates.find((g) => g.name === "instance")!;
     expect(instance.pass).toBe(false);
     expect((instance.errors ?? []).join("\n")).toMatch(/title/);
+    // And branch-scoped: no other component's branch leaks into the report.
+    for (const e of instance.errors ?? []) expect(e).toContain("AlertDialog#root");
   });
 });

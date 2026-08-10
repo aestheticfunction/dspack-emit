@@ -143,10 +143,14 @@ describe("transformations keep their meaning", () => {
   });
 
   it("first-write-wins: the first matching sub claims the destination", () => {
+    // The trigger keeps the AlertDialog instance catalog-valid
+    // (`triggerLabel` is required; emitSurface now refuses invalid
+    // instances) — the behaviour under test is the duplicated title.
     const [dialog] = instances(
       {
         component: "alert-dialog",
         children: [
+          { component: "alert-dialog-trigger", children: [{ component: "button", text: "Open" }] },
           { component: "alert-dialog-content", children: [
             { component: "alert-dialog-title", text: "First" },
             { component: "alert-dialog-title", text: "Second" },
@@ -173,12 +177,18 @@ describe("transformations keep their meaning", () => {
   });
 
   it("collection: two header rows concatenate into one column list (v1 behaviour)", () => {
+    // A body row keeps the Table instance catalog-valid (`rows` is required;
+    // emitSurface now refuses invalid instances) — the behaviour under test
+    // is the header concatenation, which is unaffected.
     const [table] = instances({
       component: "table",
       children: [
         { component: "table-header", children: [
           { component: "table-row", children: [{ component: "table-head", text: "A" }] },
           { component: "table-row", children: [{ component: "table-head", text: "B" }] },
+        ] },
+        { component: "table-body", children: [
+          { component: "table-row", children: [{ component: "table-cell", text: "1" }] },
         ] },
       ],
     });
