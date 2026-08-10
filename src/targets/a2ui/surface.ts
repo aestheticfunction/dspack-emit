@@ -118,6 +118,12 @@ export function emitSurface(
       ? emitter.emitTransparentRoot(surface.root, "$.root")
       : emitter.emitNode(surface.root, "$.root");
 
+  // Every instance is assembled; refuse the whole emission if any of them
+  // could not validate against the catalog this surface names (required
+  // presence + enum membership — the observed defect class; gate A3 keeps
+  // full-schema rigor downstream).
+  emitter.refuseCatalogInvalid();
+
   const surfaceId = options.surfaceId ?? slug(surface.intent);
   const theme: Json = { agentDisplayName: `${doc.name} via dspack` };
   const primaryHex = primaryColor(doc, profile);
@@ -177,6 +183,17 @@ class SurfaceEmitter {
   readonly components: Json[] = [];
   readonly diagnostics = new Diagnostics();
   private readonly usedIds = new Set<string>();
+  /**
+   * Evidence channel for the final catalog-validity guard: authored props
+   * dropped per EMITTED instance — either the prop had no A2UI projection at
+   * all, or its value had no projection and no default. Keyed by instance
+   * object so a later missing-required refusal can cite its cause. This is
+   * bookkeeping alongside the (byte-frozen) warnings, never a new warning.
+   */
+  private readonly droppedProps = new Map<
+    Json,
+    Array<{ prop: string; dest?: string; raw: unknown; component: string; path: string; reason: "no-projection" | "no-value" }>
+  >();
 
   constructor(
     private readonly profile: Profile,
@@ -591,8 +608,9 @@ class SurfaceEmitter {
 
       case "sub-text-lift": {
         // Audited lift: relocation of text that exists, never synthesis. If
-        // nothing exists to lift the destination stays missing and gate A3
-        // refuses the instance, exactly as before.
+        // nothing exists to lift the destination stays missing — refused at
+        // emission by the final catalog-validity guard when it is required,
+        // arbitrated by gate A3 otherwise. Either way, no fabrication.
         const lift = (n: SurfaceNode, inside: boolean): { text: string; component: string } | undefined => {
           const here = inside || selector.subs.includes(n.component);
           if (here && n.text !== undefined && n.text !== "") return { text: n.text, component: n.component };
@@ -656,6 +674,7 @@ class SurfaceEmitter {
       if (routedVerbatim.has(prop)) continue;
       const pp = plan.propMap?.[prop];
       if (!pp) {
+        this.recordDrop(instance, { prop, raw, component: node.component, path, reason: "no-projection" });
         this.diagnostics.push(
           {
             code: "surface-prop-dropped",
@@ -676,6 +695,7 @@ class SurfaceEmitter {
       const mapped = pp.valueMap ? pp.valueMap[String(raw)] : undefined;
       const value = pp.valueMap ? (mapped ?? pp.default) : raw;
       if (value === undefined) {
+        this.recordDrop(instance, { prop, dest: pp.a2ui, raw, component: node.component, path, reason: "no-value" });
         this.diagnostics.push(
           {
             code: "surface-prop-value-dropped",
@@ -708,6 +728,104 @@ class SurfaceEmitter {
         Phase.PropMap,
       );
     }
+  }
+
+  private recordDrop(
+    instance: Json,
+    entry: { prop: string; dest?: string; raw: unknown; component: string; path: string; reason: "no-projection" | "no-value" },
+  ): void {
+    const list = this.droppedProps.get(instance);
+    if (list) list.push(entry);
+    else this.droppedProps.set(instance, [entry]);
+  }
+
+  /**
+   * Final guard (ratified 2026-08-10): never return a surface whose instances
+   * the emitted catalog itself refuses. Two checks per instance, against its
+   * own ComponentPlan:
+   *
+   *  - every catalog-required prop carries a value (`plan.required` — the
+   *    same list mapping.ts emits as `required: ["component", ...]`);
+   *  - every propMap-projected prop with a `targetEnum` carries a member of
+   *    that enum (without a valueMap the authored value passes through
+   *    verbatim, so an off-vocabulary value used to land silently).
+   *
+   * On any violation the whole emission refuses with ONE aggregated message
+   * citing each violation and — where the node's recorded drop diagnostics
+   * recover it — the cause. This covers the observed defect class
+   * (required-presence + enum-membership); full-schema rigor stays gate A3's
+   * job, downstream, as defense in depth. Warnings and fidelity recording are
+   * untouched: a surface that emits, emits byte-identically to before.
+   */
+  refuseCatalogInvalid(): void {
+    const byA2ui = new Map<string, ComponentPlan>();
+    for (const plan of [...this.profile.components, ...this.profile.synthesized]) {
+      // Transparent plans dissolve at emission — no instance ever carries them.
+      if (!surfaceModelOf(plan).transparent) byA2ui.set(plan.a2ui, plan);
+    }
+
+    const violations: string[] = [];
+    for (const inst of this.components) {
+      const plan = byA2ui.get(String(inst.component));
+      if (!plan) continue; // no plan to check against: gate A3 arbitrates downstream
+      const where = `${inst.component}#${inst.id}`;
+      const drops = this.droppedProps.get(inst) ?? [];
+
+      for (const req of plan.required) {
+        if (inst[req] !== undefined) continue;
+        violations.push(`${where}: required prop '${req}' has no value after emission${this.missingCause(plan, req, drops)}`);
+      }
+
+      for (const [src, pp] of Object.entries(plan.propMap ?? {})) {
+        if (!pp.targetEnum) continue;
+        const value = inst[pp.a2ui];
+        if (value === undefined) continue;
+        if (typeof value === "string" && pp.targetEnum.includes(value)) continue;
+        const cause = pp.valueMap ? "" : ` — authored 'props.${src}' passed through verbatim (this propMap declares no valueMap)`;
+        violations.push(
+          `${where}: prop '${pp.a2ui}' value ${JSON.stringify(value)} is outside the catalog's enum (allowed: ${pp.targetEnum.join(", ")})${cause}`,
+        );
+      }
+    }
+
+    if (violations.length > 0) {
+      throw new EmitSurfaceError(
+        `refusing to emit: ${violations.length} instance value(s) would not validate against the emitted catalog ` +
+          `(gate A3 would refuse this surface downstream):\n` +
+          violations.map((v) => `  - ${v}`).join("\n"),
+        "$",
+      );
+    }
+  }
+
+  /**
+   * The recoverable cause for a required prop with no value: the authored
+   * prop this node DID carry that was dropped (recorded at PropMap time),
+   * and/or where the plan's own routes expect the value to come from.
+   */
+  private missingCause(
+    plan: ComponentPlan,
+    req: string,
+    drops: Array<{ prop: string; dest?: string; raw: unknown; component: string; path: string; reason: "no-projection" | "no-value" }>,
+  ): string {
+    const model = surfaceModelOf(plan);
+    const feeders = model.routes.filter((r) => r.to.name === req);
+    const subs = [
+      ...new Set(feeders.flatMap((r) => r.from.flatMap((s) => ("subs" in s ? [...(s.subs as string[])] : [])))),
+    ];
+    const source =
+      subs.length > 0
+        ? ` (${req} comes from the ${subs.map((s) => `'${s}'`).join(" / ")} sub-component${subs.length > 1 ? "s" : ""})`
+        : feeders.length > 0
+          ? ` (${req} is fed by ${feeders.map((r) => r.from.map(describeSelector).join(" | ")).join(", ")})`
+          : "";
+    const drop = drops.find((d) => d.prop === req || d.dest === req);
+    if (!drop) return source;
+    const why =
+      drop.reason === "no-projection"
+        ? `authored 'props.${drop.prop}' on '${drop.component}' has no A2UI projection`
+        : `authored 'props.${drop.prop}'=${JSON.stringify(drop.raw)} on '${drop.component}' has no projection for that value and no default`;
+    return ` — ${why}${source}`;
   }
 
   /**
@@ -1546,8 +1664,10 @@ class SurfaceEmitter {
         if (value !== undefined) {
           pending.push({ prop: d.to.name, value, origin: d.origin, donorPath: `${path}${suffix}`, donorComponent });
         }
-        // Nothing to donate is not an error: the destination stays absent and
-        // gate A3 arbitrates — relocation, never synthesis (the lift rule).
+        // Nothing to donate is not an error: the destination stays absent —
+        // refused at emission by the final catalog-validity guard when it is
+        // required, arbitrated by gate A3 otherwise. Relocation, never
+        // synthesis (the lift rule).
       }
 
       // The boundary's own text rises as body text unless a self.text

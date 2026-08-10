@@ -223,10 +223,13 @@ describe("dead and contradictory spellings refuse at load (findings 4, 5, 13)", 
 describe("the ledger never reports a discarded value as landed (findings 7, 11, 12)", () => {
   it("a first-wins-skipped harvest ledgers as dropped/lossy, not moved", () => {
     // The shipped v1 Table: authored caption prop beats the harvested one.
+    // columns/rows ride the same structuralPassthrough so the instance stays
+    // catalog-valid (both are required; emitSurface now refuses otherwise) —
+    // the first-wins dynamics under test concern only the caption.
     const { fidelity } = emitSurface(
       surface({
         component: "table",
-        props: { caption: "Authored" },
+        props: { caption: "Authored", columns: ["A"], rows: [{ cells: ["1"] }] },
         children: [{ component: "table-caption", text: "Harvested" }],
       }),
       doc,

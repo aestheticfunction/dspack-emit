@@ -12,7 +12,10 @@
  *     a2ui-catalog.meta.<ver>.json (the literal "catalog schema" check; this is what
  *     makes v0.9.1 vs v1.0 conformance distinct — theme vs surfaceProperties).
  *  3. instance: every component instance in the hand-authored surface validates
- *     against the catalog's own #/$defs/anyComponent.
+ *     against the catalog's own #/$defs/anyComponent — checked by manual
+ *     discrimination (each instance against its own #/components/<name>
+ *     branch), which is semantically equivalent and keeps every reported
+ *     error inside the instance's own branch. See the gate 3 body.
  */
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
@@ -24,6 +27,25 @@ export interface GateResult {
   pass: boolean;
   detail: string;
   errors?: string[];
+  /**
+   * Structured per-instance evidence for gate 3 failures (advanced channel
+   * for downstream UIs). The strings in `errors` remain the primary
+   * user-facing form; this preserves ajv's keyword/params/schemaPath, which
+   * the strings deliberately compress.
+   */
+  errorDetails?: Array<{
+    /** `component#id` — same prefix the string form carries. */
+    instance: string;
+    component: string;
+    id: string;
+    errors: Array<{
+      instancePath?: string;
+      schemaPath?: string;
+      keyword?: string;
+      params?: unknown;
+      message?: string;
+    }>;
+  }>;
 }
 
 export interface ValidationReport {
@@ -171,20 +193,64 @@ export function validateCatalog(
       // Belt and braces: gate 1 has already proven every ref resolves, but a
       // raw ajv throw must never escape this function regardless.
       const failures: string[] = [];
+      const errorDetails: NonNullable<GateResult["errorDetails"]> = [];
       let instances: Json[] = [];
       try {
         const ajv = newAjv();
         ajv.addSchema(catalog as unknown as Json, catalog.$id);
-        const validateAny = ajv.getSchema(`${catalog.$id}#/$defs/anyComponent`);
         instances = extractInstances(surface);
-        if (!validateAny) {
-          failures.push("Could not resolve #/$defs/anyComponent from the catalog.");
-        } else {
-          for (const inst of instances) {
-            if (!validateAny(inst)) {
-              const where = `${inst.component}#${inst.id}`;
-              for (const e of validateAny.errors ?? []) failures.push(`${where}: ${fmtErr(e)}`);
-            }
+        // Manual discrimination instead of the flat `#/$defs/anyComponent`
+        // oneOf. Semantically equivalent: every branch of the emitted
+        // anyComponent is `{$ref: "#/components/<name>"}` and each component
+        // schema pins `component: {const: <name>}` inside its allOf (and
+        // requires it), so an instance tagged component X can only ever match
+        // branch X — validating the instance against ITS OWN branch accepts
+        // and rejects exactly the same instances the oneOf does. What changes
+        // is the report: allErrors WITHIN the matching branch (rigor
+        // preserved, every genuine error surfaced) without echoing every
+        // other branch's const/required/unevaluatedProperties noise.
+        const admitted = Object.keys(catalog.components ?? {});
+        for (const inst of instances) {
+          const comp = String(inst.component);
+          const id = String(inst.id);
+          const where = `${comp}#${id}`;
+          if (!admitted.includes(comp)) {
+            failures.push(
+              `${where}: component '${comp}' is not in this catalog (${admitted.length} components admitted)`,
+            );
+            errorDetails.push({
+              instance: where,
+              component: comp,
+              id,
+              errors: [
+                {
+                  message: `component '${comp}' is not in this catalog`,
+                  params: { admittedComponents: admitted },
+                },
+              ],
+            });
+            continue;
+          }
+          const validateBranch = ajv.getSchema(`${catalog.$id}#/components/${comp}`);
+          if (!validateBranch) {
+            failures.push(`${where}: could not resolve #/components/${comp} from the catalog.`);
+            continue;
+          }
+          if (!validateBranch(inst)) {
+            const errs = validateBranch.errors ?? [];
+            for (const e of errs) failures.push(`${where}: ${fmtErr(e)}`);
+            errorDetails.push({
+              instance: where,
+              component: comp,
+              id,
+              errors: errs.map((e) => ({
+                instancePath: e.instancePath,
+                schemaPath: e.schemaPath,
+                keyword: e.keyword,
+                params: e.params as unknown,
+                message: e.message,
+              })),
+            });
           }
         }
       } catch (e) {
@@ -198,6 +264,7 @@ export function validateCatalog(
             ? `All ${instances.length} surface component instance(s) validate against #/$defs/anyComponent.`
             : `${failures.length} instance validation error(s).`,
         errors: failures.length ? failures : undefined,
+        ...(errorDetails.length ? { errorDetails } : {}),
       });
     }
   }
@@ -205,6 +272,23 @@ export function validateCatalog(
   return { version, pass: gates.every((g) => g.pass), gates };
 }
 
-function fmtErr(e: { instancePath?: string; message?: string }): string {
-  return `${e.instancePath || "(root)"} ${e.message ?? ""}`.trim();
+/**
+ * One ajv error as a user-facing line: instancePath + message, enriched from
+ * the error's params where they carry the actionable detail ajv's message
+ * omits — the allowed enum values, the expected const, or the name of the
+ * offending unevaluated/additional property.
+ */
+function fmtErr(e: { instancePath?: string; keyword?: string; params?: unknown; message?: string }): string {
+  const params = (e.params ?? {}) as Record<string, unknown>;
+  let out = `${e.instancePath || "(root)"} ${e.message ?? ""}`.trim();
+  if (e.keyword === "enum" && Array.isArray(params.allowedValues)) {
+    out += ` (allowed: ${(params.allowedValues as unknown[]).map((v) => String(v)).join(", ")})`;
+  } else if (e.keyword === "const" && "allowedValue" in params) {
+    out += ` (expected: ${JSON.stringify(params.allowedValue)})`;
+  } else if (e.keyword === "unevaluatedProperties" && typeof params.unevaluatedProperty === "string") {
+    out += ` ('${params.unevaluatedProperty}')`;
+  } else if (e.keyword === "additionalProperties" && typeof params.additionalProperty === "string") {
+    out += ` ('${params.additionalProperty}')`;
+  }
+  return out;
 }

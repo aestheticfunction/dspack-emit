@@ -331,7 +331,11 @@ describe("T1 fail-closed boundaries", () => {
     expect(lost).toBeDefined();
   });
 
-  it("nothing to donate leaves the destination to gate A3 — relocation, never synthesis", () => {
+  it("nothing to donate leaves the destination unfilled and emission refuses — relocation, never synthesis", () => {
+    // No form-label exists, so no label is donated and NOTHING is synthesized
+    // in its place. The shipped TextField requires `label`, so instead of
+    // emitting an instance gate A3 would refuse downstream, emitSurface now
+    // refuses the emission itself, naming the unfilled requirement.
     const s = surfaceOf({
       component: "card",
       children: [
@@ -346,13 +350,10 @@ describe("T1 fail-closed boundaries", () => {
         },
       ],
     });
-    const { messages } = emitSurface(s, contract, { profile: t1Profile() });
-    const field = (messages[1] as { updateComponents: { components: Array<Record<string, unknown>> } })
-      .updateComponents.components.find((c) => c.component === "TextField")!;
-    expect(field.label).toBeUndefined();
-    // The shipped TextField requires `label`, so A3 refuses the omission.
-    const check = transformFromJson(contract, { profile: t1Profile(), surface: { messages } });
-    expect(check.validation.gates.find((g) => g.name === "instance")?.pass).toBe(false);
+    expect(() => emitSurface(s, contract, { profile: t1Profile() })).toThrowError(EmitSurfaceError);
+    expect(() => emitSurface(s, contract, { profile: t1Profile() })).toThrowError(
+      /required prop 'label' has no value after emission/,
+    );
   });
 
   it("a transparent plan emits no catalog entry, and coverage says so", () => {

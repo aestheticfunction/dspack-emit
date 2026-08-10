@@ -78,10 +78,22 @@ describe("every transformation reports itself", () => {
   });
 
   it("collection records the gathered rows, per-cell flattening losses, and drops", () => {
+    // The header row keeps the Table instance catalog-valid (`columns` is
+    // required; emitSurface now refuses invalid instances) — the ledger
+    // behaviour under test lives in the body/footer handling.
     const entries = fidelityOf({
       component: "table",
       children: [
         { component: "table-caption", text: "Orders" },
+        {
+          component: "table-header",
+          children: [
+            {
+              component: "table-row",
+              children: [{ component: "table-head", text: "Status" }, { component: "table-head", text: "Order" }],
+            },
+          ],
+        },
         {
           component: "table-body",
           children: [
