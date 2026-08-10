@@ -44,14 +44,21 @@ Closing the gap by declaring 24 new casualties was considered and rejected: thos
 
 Replace the pin with the production contract **only after all of the following are implemented and measured**:
 
-- [ ] profile v2 schema + explicit `profileVersion` dispatch
-- [ ] v1 directive desugaring into the internal Identity/Route/Collect model
-- [ ] load-time validation of selectors and destinations
-- [ ] `EmitSurfaceResult.fidelity` + `--strict-surface`
-- [ ] sub-component coverage derived and enforced from the internal model
-- [ ] the six shadcn renderer drifts repaired, with props-level parity tests
-- [ ] `functions` support on the profile/catalog path
-- [ ] `profile-parity.test.ts` invariant 1 restated as *every worked example either emits, or refuses for a declared-casualty reason the contract itself acknowledges*
+- [x] profile v2 schema + explicit `profileVersion` dispatch — `src/transform/profile-schema-v2.ts`, `profile-load.ts`
+- [x] v1 directive desugaring into the internal Identity/Route/Collect model — `src/transform/desugar.ts`, byte-neutrality gated by `src/byte-neutral.test.ts`
+- [x] load-time validation of selectors and destinations — `src/transform/parse-v2.ts`
+- [x] `EmitSurfaceResult.fidelity` + `--strict-surface` — `src/targets/a2ui/surface.ts`, `src/cli.ts` (exit 5)
+- [x] sub-component coverage derived and enforced from the internal model
+- [x] the six shadcn renderer drifts repaired, with props-level parity tests — landed in dspack-studio (`packages/shadcn-renderers`)
+- [x] `functions` support on the profile/catalog path — `src/transform/profiles.ts`, `profile-load.ts`
+- [ ] `profile-parity.test.ts` invariant 1 restated as *every worked example either emits, or refuses for a declared-casualty reason the contract itself acknowledges* — **the one remaining blocker** (`src/profile-parity.test.ts` still asserts every example emits)
+
+Everything above except the last line shipped in **0.6.0** (see
+[RELEASE-0.6.0.md](../RELEASE-0.6.0.md)): T1 transparent identity + control
+donation, T2/T3 collect with declared joins, T4 multi-slot compounds, and
+layered dissolution. The measured-gap table earlier in this document predates
+that release — as of 0.6.0 the production contract is 34 components and 11 of
+14 worked examples emit.
 
 At that point: `node scripts/check-sync.mjs --write` after removing the `pin` block, regenerate the derived catalogs and json-render goldens, and commit them together.
 

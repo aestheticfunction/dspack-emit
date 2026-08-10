@@ -29,11 +29,14 @@ const profile = loadProfile(JSON.parse(readFileSync("acme.profile.json", "utf8")
 // throws ProfileLoadError with pathed issues if the document is malformed
 ```
 
-From the CLI: `dspack-emit --in acme.dspack.json --profile acme.profile.json --out out`.
+From the CLI: `dspack-emit --in acme.dspack.json --profile acme.profile.json --a2ui-version 0.9.1 --out out`.
 To start from zero, `scaffoldProfile(doc, { catalogIdBase })` derives a
-mechanical 1:1 draft (verbatim prop projections, subFlatten from declared
-`acceptsChildren`, no valueMaps, no casualties) plus `notes` listing every
-judgment call left to you.
+mechanical **v2** draft (verbatim prop projections, no valueMaps, no
+casualties) plus `notes` listing every judgment call left to you. It
+deliberately does not guess sub-component treatment: auto-classifying subs
+from declared `acceptsChildren` was measured wrong for repeated items such as
+`radio-group-item`, so every sub is surfaced under `x-scaffold.unresolved` as
+an explicit decision rather than an invented one.
 
 The schema fails closed: unknown keys are refused everywhere, with one
 deliberate, dspack-conventional exception — `x-*` keys are accepted (and

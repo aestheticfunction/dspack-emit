@@ -166,9 +166,11 @@ npm run transform -- --in input/shadcn-ui.dspack.json --a2ui-version 0.9.1 --out
 
 emits `out/delete-account.surface.json` (createSurface with dspack-token theme +
 updateComponents) and instance-validates it against the freshly generated catalog
-(gate A3). Exit codes: `1` catalog gates failed, `3` strict-coverage, `4` the
-surface could not be emitted (unknown component / structure the profile cannot
-project). The projection is data in the profile (`surfacePlan` directives in
+(gate A3). Exit codes: `1` catalog gates failed, `2` usage or profile-load error,
+`3` strict-coverage, `4` the surface could not be emitted (unknown component /
+structure the profile cannot project), `5` `--strict-surface` (a surface emitted,
+but with fidelity losses you asked to treat as failures — bare, or scoped as
+`--strict-surface=lossy,synthesis-defaults`). The projection is data in the profile (`surfacePlan` directives in
 `src/transform/profiles.ts`); the engine has no component-specific code.
 
 **Honest scope:** compound composition flattens per the documented casualties in
